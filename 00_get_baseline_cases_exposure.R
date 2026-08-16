@@ -51,7 +51,7 @@ get_baseline_cases <- function(baseline = 100,
   
 }
 
-x1 <- get_baseline_cases(baseline = 1e5)
+x1 <- get_baseline_cases(baseline = 1e5, variance = 0.2)
 head(x1)
 Ndays <- nrow(x1)
 plot(x1$date, x1$death)
