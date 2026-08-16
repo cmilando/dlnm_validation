@@ -13,19 +13,7 @@ xpred_base
 # ok now each gets a onebasis
 exp_knots = quantile(exposure_timeseries, probs = c(.5, .9))z
 
-exposure_basis = onebasis(xpred_base$x, 
-                          fun = 'ns',
-                          knots = exp_knots)
-# exposure_basis <- as.data.table(exposure_basis)
-# exposure_basis$x = xpred_base$x
-# exposure_basis$l = xpred_base$l
-# exposure_basis
-
-maxlag = max(l)
-lag_basis = onebasis(xpred_base$l,
-                     fun = 'ns',
-                     knots = )
-
+# make crossbasis
 cp_basis = crossbasis(
   x = xpred_base$x, 
   argvar = list(fun = 'ns', knots = exp_knots),
@@ -35,6 +23,7 @@ cp_basis = crossbasis(
 
 dim(cp_basis)
 
+# get Xpred
 Xpred = dlnm:::mkXpred('cb', cp_basis, 
     at = x, predvar = x, predlag = l, cen = min(x))
 
@@ -153,3 +142,20 @@ ggplot(rebuild_RRmat) +
                                fill = RR)) +
   coord_3d() + scale_fill_gradient2()
 
+
+library(patchwork)
+
+p1 = ggplot(RR_df) +
+  geom_surface_3d(mapping= aes(x = x, y = l, z = RR, 
+                               fill = RR)) +
+  coord_3d() + scale_fill_gradient2()
+
+p2 = ggplot(rebuild_RRmat) +
+  geom_surface_3d(mapping= aes(x = x, y = l, z = RR, 
+                               fill = RR)) +
+  coord_3d() + scale_fill_gradient2()
+
+# works !!!
+p1 + p2
+
+beta

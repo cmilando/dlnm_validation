@@ -63,7 +63,8 @@ nk = 2
 
 ## natural spline
 ## two knots
-argvar <- list(fun=x_fun, degree = x_degree,
+argvar <- list(fun=x_fun, 
+               degree = x_degree,
                knots = x_knots)
 
 arglag <- list(fun=x_fun, knots=logknots(maxlag, nk=nk))
@@ -73,66 +74,52 @@ arglag <- list(fun=x_fun, knots=logknots(maxlag, nk=nk))
 x_cen = which.min(exposure_timeseries)
 x_cen
 
-origbasis <- crossbasis(exposure_timeseries, maxlag, argvar, arglag)
-dim(origbasis)
-
-x_mat <- do.call(cbind, lapply(0:maxlag, \(x) dplyr::lag(exposure_timeseries, x)))
-
-# so create the true crossbasis
-
-# get a recentered basis
-# origbasis <- onebasis(x = x_values, fun = x_fun, knots = x_knots,
-#                       degree = x_degree, intercept = x_intercept,
-#                       Boundary.knots = x_Boundary)
-
+origbasis <- crossbasis(exposure_timeseries,
+                        argvar = list(fun = 'ns', knots = exp_knots),
+                        arglag = list(fun = 'ns', knots = 2),
+                        lag = 5)
+# dim(origbasis)
+# 
+# x_mat <- do.call(cbind, lapply(0:maxlag, \(x) dplyr::lag(exposure_timeseries, x)))
+# 
+# # so create the true crossbasis
+# 
+# # get a recentered basis
+# # origbasis <- onebasis(x = x_values, fun = x_fun, knots = x_knots,
+# #                       degree = x_degree, intercept = x_intercept,
+# #                       Boundary.knots = x_Boundary)
+# 
 basiscen <- origbasis[x_cen, ]
 
 newbasis <- scale(origbasis, center = basiscen, scale = FALSE)
 dim(newbasis)
-
-# get coefficients
-# hmm you can't do this here because you dont have logRRfit for every day
-# and you dont have that for every day because you dont have the lag values
-# for every temperature
-# but I suppose these is where you would put it in
-# if you can create a logRRfit object
-# that is what is being estimated
-
-# is there a system of equations here for this?
-
-# switch to modified
-
-# this actually needs to be on DEATH not RRfit
-death_baseline <- x1$death
-
-# and this should be roughly determined by the quadratic above
-# lets assign some weights
-ww = c(1, 0.7, 0.4, 0.3, 0.2, 0.05) / 1.5
+# 
+# # get coefficients
+# # hmm you can't do this here because you dont have logRRfit for every day
+# # and you dont have that for every day because you dont have the lag values
+# # for every temperature
+# # but I suppose these is where you would put it in
+# # if you can create a logRRfit object
+# # that is what is being estimated
+# 
+# # is there a system of equations here for this?
+# 
+# # switch to modified
+# 
+# # this actually needs to be on DEATH not RRfit
+# death_baseline <- x1$death
+# 
+# # and this should be roughly determined by the quadratic above
+# # lets assign some weights
+# ww = c(1, 0.7, 0.4, 0.3, 0.2, 0.05) / 1.5
 #ww = c(1,   ,   0,   0,   0,    0) / 1
 #
 death_updated <- death_baseline
 for(i in 1:length(death_updated)) {
-  death_updated[i] = round(death_baseline[i] * exp(sum(getlogy(x_mat[i, ]) * ww)))
+  death_updated[i] = round(death_baseline[i] * exp(sum(newbasis[i, ] * beta)))
 }
 x1$death_updated <- death_updated
 # so now,
 
-# ok so if you now use this to get deaths you should be able to get the output out
-# looks good !
-library(gnm)
-m_sub <- gnm(death_updated ~ newbasis,
-             data = x1,
-             family = quasipoisson,
-             eliminate = factor(strata))
-
-
-cp <- crosspred(newbasis,
-                m_sub,
-                cen = temp_range[1],
-                by = 0.05)
-
-plot(cp)
-
-plot(cp, "overall")
 
 
