@@ -1,80 +1,10 @@
 
-library(dlnm)
-
-set.seed(123)
-n = Ndays
-x = 1:Ndays
-aa = 10
-bb  = 0.2
-cc = 100 
-vv = 23.25- 4
-ytrue = aa * sin(bb / (2*pi)* (x  + cc)) + vv
-y = ytrue + rnorm(n, sd = 0.5)
-plot(x, ytrue, 'l')
-points(x, y, col = 'red')
-abline(h = 20, col = 'brown')
-
-exposure_timeseries <- y
-
-#####
-# so first, make the shape and confidence interval
-temp_range <- vector("numeric", 2)
-temp_range[1] <- 0
-temp_range[2] <- 30
-temp_range
-seq_temp_range = temp_range[1]:temp_range[2]
-seq_temp_range
-
-RR_range   <- c(1, 2)
-RR_range
-
-# vertex is the low point
-h = temp_range[1]
-k = log(RR_range[1])
-x = temp_range[2]
-y = log(RR_range[2])
-
-#  vertx form of the quadratic equation y=a(x-h)^{2}+k
-# i have the vertex
-a = (y - k) / (x - h)^2
-a
-getlogy = function(xx) a*(xx - h)^2 + k
-plot(seq_temp_range, getlogy(seq_temp_range))
-
-# and the confidence intervals scale with population
-# lb = getlogy(seq_temp_range) * 0.75
-# ub = getlogy(seq_temp_range) * 1.25
-#
-# plot(exp(getlogy(seq_temp_range)))
-# lines(exp(ub), col = 'red')
-# lines(exp(lb), col = 'red')
-
-# just try the fisher inversion first, that should work
-# get logRR fit
-
-#
-x_values = seq_temp_range
-x_fun = 'bs'
-x_knots = quantile(exposure_timeseries, probs = c(0.5, 0.9))
-x_degree = 2
-x_intercept = F
-maxlag = 5
-nk = 2
-
-## natural spline
-## two knots
-argvar <- list(fun=x_fun, 
-               degree = x_degree,
-               knots = x_knots)
-
-arglag <- list(fun=x_fun, knots=logknots(maxlag, nk=nk))
-
 # because you are passing in the whole matrix, you don't need to
 # group or anything
 x_cen = which.min(exposure_timeseries)
 x_cen
 
-origbasis <- crossbasis(exposure_timeseries,
+origbasis <- dlnm::crossbasis(exposure_timeseries,
                         argvar = list(fun = 'ns', knots = exp_knots),
                         arglag = list(fun = 'ns', knots = 2),
                         lag = 5)
@@ -114,9 +44,18 @@ dim(newbasis)
 # ww = c(1, 0.7, 0.4, 0.3, 0.2, 0.05) / 1.5
 #ww = c(1,   ,   0,   0,   0,    0) / 1
 #
-death_updated <- death_baseline
+set.seed(12345)
+death_updated <- numeric(nrow(x1))
+options(warn = 1)
 for(i in 1:length(death_updated)) {
-  death_updated[i] = round(death_baseline[i] * exp(sum(newbasis[i, ] * beta)))
+  # so first get the expected value
+  # E[y] = A * exp(B0 + B1*cb1 + ...)
+  deaths_expected_value = x1$death[i] * exp(sum(newbasis[i, ] * beta))
+  #print(deaths_expected_value)
+  # then use this in a poisson draw
+  # governed by  .... variance and dispersion ??
+  death_updated[i] = rpois(1, deaths_expected_value)
+  # death_updated[i] = round(deaths_expected_value)
 }
 x1$death_updated <- death_updated
 # so now,

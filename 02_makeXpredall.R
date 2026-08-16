@@ -1,8 +1,5 @@
 # ok now make Xpred
 
-x = seq(0, 30, by = 0.5)
-l = seq(0, 5, by = 1)
-
 xpred_base = tidyr::expand_grid(x= x, l = l)
 xpred_base = xpred_base[, c("x", "l")]
 setDT(xpred_base)
@@ -11,14 +8,15 @@ setorderv(xpred_base, "x")
 xpred_base
 
 # ok now each gets a onebasis
-exp_knots = quantile(exposure_timeseries, probs = c(.5, .9))z
+exp_knots = quantile(exposure_timeseries, probs = c(.5, .9))
 
 # make crossbasis
-cp_basis = crossbasis(
+
+cp_basis = dlnm::crossbasis(
   x = xpred_base$x, 
   argvar = list(fun = 'ns', knots = exp_knots),
   arglag = list(fun = 'ns', knots = 2),
-  lag = 5
+  lag = maxlag
 )
 
 dim(cp_basis)
@@ -58,10 +56,9 @@ Xpred
 RR_mat
 
 tRR_mat <- t(RR_mat)
+dim(tRR_mat)
 tRR_mat_flat <- matrix(tRR_mat, ncol = 1)
 tRR_mat_flat
-
-Xpred_mat
 
 # ok so here its the solver step
 # since this is poisson, you will need to find the 
@@ -69,6 +66,9 @@ Xpred_mat
 # exp(XpredALL[i] * Beta) = cumfit[i]
 #  Beta = INVERSE(Expred[i]) * log(cumFit[i])
 # no the t(RR_mat) needs to have its columns reversed
+dim(MASS::ginv(Xpred))
+dim(tRR_mat_flat)
+
 beta = MASS::ginv(Xpred) %*% log(tRR_mat_flat)
 beta
 # # butttt since this isn't OLS, you have to solve this here instead.
@@ -118,15 +118,17 @@ beta
 # xcoef = as.matrix(stan_summary$mean[rr])
 # xcoef
 
-Xpred_mat %*% beta
-rebuild_log_RRmat <- matrix(Xpred %*% beta, ncol = maxlag + 1)
+dim(Xpred %*% beta)
+length(x)
+rebuild_log_RRmat <- matrix(Xpred %*% beta, nrow = length(x))
 head(rebuild_log_RRmat)
 head(log(tRR_mat))
 
 rebuild_RRmat = exp(rebuild_log_RRmat)
 head(rebuild_RRmat)
 rebuild_RRmat <- as.data.table(rebuild_RRmat)
-names(rebuild_RRmat) = as.character(0:maxlag)
+names(rebuild_RRmat) = as.character(l)
+
 rebuild_RRmat$x = x
 rebuild_RRmat <- melt(rebuild_RRmat, id.vars = 'x')
 names(rebuild_RRmat)[2:3] <- c('l', 'RR')
@@ -148,12 +150,14 @@ library(patchwork)
 p1 = ggplot(RR_df) +
   geom_surface_3d(mapping= aes(x = x, y = l, z = RR, 
                                fill = RR)) +
-  coord_3d() + scale_fill_gradient2()
+  coord_3d() + scale_fill_gradient2() +
+  scale_z_continuous(limits = c(0.95, 2.2))
 
 p2 = ggplot(rebuild_RRmat) +
   geom_surface_3d(mapping= aes(x = x, y = l, z = RR, 
                                fill = RR)) +
-  coord_3d() + scale_fill_gradient2()
+  coord_3d() + scale_fill_gradient2() +
+  scale_z_continuous(limits = c(0.95, 2.2))
 
 # works !!!
 p1 + p2

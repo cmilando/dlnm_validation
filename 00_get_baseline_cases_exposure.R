@@ -51,7 +51,7 @@ get_baseline_cases <- function(baseline = 100,
   
 }
 
-x1 <- get_baseline_cases()
+x1 <- get_baseline_cases(baseline = 1e5)
 head(x1)
 Ndays <- nrow(x1)
 plot(x1$date, x1$death)
@@ -64,3 +64,25 @@ x1$year <- lubridate::year(x1$date)
 x1$strata <- paste0(x1$TOWN20, ":", x1$year, ":",
                     x1$month, ":", x1$dow)
 
+##
+
+library(dlnm)
+
+get_exposure_ts <- function(Ndays) {
+  set.seed(123)
+  n = Ndays
+  x = 1:Ndays
+  aa = 10
+  bb  = 0.2
+  cc = 100 
+  vv = 23.25- 4
+  ytrue = aa * sin(bb / (2*pi)* (x  + cc)) + vv
+  y = ytrue + rnorm(n, sd = 0.5)
+  # plot(x, ytrue, 'l')
+  # points(x, y, col = 'red')
+  # abline(h = 20, col = 'brown')
+  return(y)
+}
+
+
+exposure_timeseries <- get_exposure_ts(Ndays)

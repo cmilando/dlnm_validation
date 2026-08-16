@@ -41,27 +41,46 @@ library(data.table)
 ##        goes between each one (#3)
 
 #
-x = seq(0, 30, by = 0.5)
-f_exp_initial = function(x) ifelse(x<20, 1, (x^3.5)/6e5+0.95)
-f_exp_cumulative = function(x) ifelse(x<20, 1, (x^4)/6e5+0.75)
-plot(x, f_exp_initial(x), type = 'l', col = 'blue', ylim = c(1, 2))
-lines(x, f_exp_cumulative(x), type = 'l', col = 'red')
+x = seq(0, 30, by = 0.25)
 
-l = seq(0, 5, by = 1)
-f_lag = function(l) rev(scales::rescale(exp(l), to = c(1, 1.5)))
+
+f_exp_initial = function(x) ifelse(x<20, 1, (x^3.5)/6e5+0.95)
+f_exp_max = function(x) ifelse(x<20, 1, (x^4)/6e5+0.75)
+plot(x, f_exp_initial(x), type = 'l', col = 'blue', ylim = c(1, 2))
+lines(x, f_exp_max(x), type = 'l', col = 'red')
+
+maxlag = 5
+l = seq(0, maxlag, by = 0.25)
+f_lag = function(l) rev(scales::rescale(exp(l), to = c(0, 1)))
 f_lag_base = f_lag(l)
 f_lag_x = function(x) scales::rescale(
-  f_lag_base, to = c(f_exp_initial(x), f_exp_cumulative(x)))
+  f_lag_base, to = c(f_exp_initial(x), f_exp_max(x)))
 
 plot(l, f_lag_x(21), type = 'l', ylim = c(1, 2))
 lines(l, f_lag_x(30), type = 'l', col = 'red')
 
+local_rescale <- function(xvec, scalefirst, scalelast) {
+  ## another way of saying this is I want scalefirst
+  ## and scalelast to be the vector, following the shape of xvec
+  ## and allow it go above scalefirst if xvec > 1
+  xout <- numeric(length(xvec))
+  xrange <- abs(xvec[1] - xvec[length(xvec)])
+  scalerange = scalefirst - scalelast
+  for(ii in 1:length(xvec)) {
+    xout[ii] = (xvec[ii] - xvec[length(xvec)])/xrange*scalerange + scalelast
+    #xout[ii] = (xvec[i] - xvec[length(xvec)])/xrange*scalerange + scalefirst
+  }
+  
+  return(xout)
+}
+
 RR <- function(x)  {
   f_lag_base = f_lag(l)
-  scales::rescale(
-    f_lag_base, 
-    to = c(f_exp_initial(x), 
-           f_exp_cumulative(x)))
+  # scalefirst = where does it start aka lag = 0
+  # scaleend = where does it end aka lag = maxlag
+  local_rescale(f_lag_base, 
+                f_exp_max(x),
+                f_exp_initial(x))
 }
 
 lapply(x, RR)
