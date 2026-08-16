@@ -53,4 +53,14 @@ get_baseline_cases <- function(baseline = 100,
 
 x1 <- get_baseline_cases()
 head(x1)
+Ndays <- nrow(x1)
 plot(x1$date, x1$death)
+
+
+x1$dow <- lubridate::wday(x1$date, label = T)
+x1$month <- lubridate::month(x1$date, label = T)
+x1$year <- lubridate::year(x1$date)
+
+x1$strata <- paste0(x1$TOWN20, ":", x1$year, ":",
+                    x1$month, ":", x1$dow)
+

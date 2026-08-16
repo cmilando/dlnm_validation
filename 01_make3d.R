@@ -40,14 +40,14 @@ library(data.table)
 ##        you have a min (#2), and a max(#1), and the shape of how it
 ##        goes between each one (#3)
 
-N = 10
-x = seq(0, 30, length.out = N)
+#
+x = seq(0, 30, by = 0.5)
 f_exp_initial = function(x) ifelse(x<20, 1, (x^3.5)/6e5+0.95)
 f_exp_cumulative = function(x) ifelse(x<20, 1, (x^4)/6e5+0.75)
 plot(x, f_exp_initial(x), type = 'l', col = 'blue', ylim = c(1, 2))
 lines(x, f_exp_cumulative(x), type = 'l', col = 'red')
 
-l = seq(0, 5, length.out = N)
+l = seq(0, 5, by = 1)
 f_lag = function(l) rev(scales::rescale(exp(l), to = c(1, 1.5)))
 f_lag_base = f_lag(l)
 f_lag_x = function(x) scales::rescale(
@@ -67,6 +67,8 @@ RR <- function(x)  {
 lapply(x, RR)
 
 RR_mat <- do.call(cbind, lapply(x, RR))
+t(RR_mat)
+dim(t(RR_mat))
 RR_df <- as.data.table(RR_mat)
 RR_df$l <- l
 names(RR_df) <- as.character(c(x, "l"))
@@ -75,6 +77,15 @@ RR_df <- melt(RR_df, id.vars = c('l'), variable.factor = F)
 RR_df$variable <- type.convert(RR_df$variable, as.is = T)
 names(RR_df)[2:3] <- c('x', 'RR')
 RR_df
+
+## wait does this make sense or no cumulative probability should always go up
+## yeah you did this wrong
+## the cumulative RR is the SUM of all the previous ones, 
+## so this method of creating the beginning and then well that shouldn't really 
+## matter because this isn't the cumulative
+## ah well yes, you need to convert RRmat into a cumulative 
+## right right right the cumulative isn't what you are fitting, 
+## so remove that step
 
 ## in 2d
 ggplot(RR_df) +
