@@ -54,7 +54,11 @@ ui <- fluidPage(
           width = 4,
           div(
             class = "plot-container",
-            rtPlotUI("plot1", "RR at lag=0")
+            rtPlotUI("plot1", "RR at lag=0",
+                     "This graph determines the exposure and RR relationship
+                     at the Initial lag value, i.e., lag = 0. This is the exposure
+                     response curve for lag 0 only, and not taking
+                     into account any other lags.")
           )
         ),
         
@@ -62,7 +66,12 @@ ui <- fluidPage(
           width = 4,
           div(
             class = "plot-container",
-            rtPlotUI("plot2", "RR at lag=MAX")
+            rtPlotUI("plot2", "RR at lag=MAX",
+                     "This graph determines the exposure and RR relationship
+                     at the MAXIMUM lag value. Note that this is *not* the 
+                     same as the cumulative RR, rather this is the exposure
+                     response curve for the maximum lag ONLY, and not taking
+                     into account any other lags.")
           )
         ),
         
@@ -70,7 +79,13 @@ ui <- fluidPage(
           width = 4,
           div(
             class = "plot-container",
-            rtPlotUI("plot3", "Lag dimension")
+            rtPlotUI("plot3", "Lag dimension",
+                     "This graph determines the lag dimension, 
+                     and the units are not important. This graph shows
+                     how the surface behaves going along the lag dimension
+                     and is rescaled for every starting and ending
+                     point between RR at lag0 and lagMax for each 
+                     exposure value.")
           )
         )
         
@@ -78,7 +93,7 @@ ui <- fluidPage(
       
       combinedRRPlotUI(
         "combined1",
-        "RR Surface"
+        "RR Surface - ORIG"
       )
       
     ),
@@ -147,7 +162,7 @@ server <- function(input, output, session) {
     ymax = 1.1
   )
   
-  RRmat <- reactive({
+  RRmat_orig <- reactive({
     
     # first get the f_lag points
     x_vec = plot1$grid()$x
@@ -168,9 +183,10 @@ server <- function(input, output, session) {
     
   })
   
+  ##
   combinedRRPlotServer(
     "combined1",
-    RRmat_reactive = RRmat,
+    RRmat_reactive = RRmat_orig,
     x = reactive(plot1$grid()$x),
     l = reactive(plot3$grid()$x)
   )

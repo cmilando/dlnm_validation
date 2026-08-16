@@ -17,7 +17,7 @@ local_rescale <- function(xvec, scalefirst, scalelast) {
 # Reusable plot module UI
 # ---------------------------------------------------------
 
-rtPlotUI <- function(id, title = NULL) {
+rtPlotUI <- function(id, title = NULL, helpText = NULL) {
   
   ns <- NS(id)
   
@@ -25,6 +25,10 @@ rtPlotUI <- function(id, title = NULL) {
     
     if (!is.null(title)) {
       h4(title)
+    },
+    
+    if (!is.null(helpText)) {
+      helpText(helpText)
     },
     
     sliderInput(
