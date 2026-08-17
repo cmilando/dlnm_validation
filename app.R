@@ -711,6 +711,41 @@ ui <- fluidPage(
         )
         
       )
+    ),
+    
+    tabPanel(
+      "Download Data",
+      
+      fluidRow(
+        
+        column(
+          width = 8,
+          offset = 2,
+          
+          div(
+            class = "plot-container",
+            
+            h4(
+              "Temperature and Health Data",
+              style = "margin-top: 0; margin-bottom: 10px;"
+            ),
+            
+            p(
+              "Download the temperature and health data joined by date, city, and year."
+            ),
+            
+            br(),
+            
+            downloadButton(
+              "download_csv",
+              "Download CSV",
+              class = "btn-primary"
+            )
+            
+          )
+        )
+        
+      )
     )
     
   )
@@ -1425,6 +1460,38 @@ server <- function(input, output, session) {
       ) +
       theme_minimal()
   })
+  
+  joined_data <- reactive({
+    
+    df_cases <- baseline_cases()
+    df_temp  <- temp_data()
+    
+    df <- df_cases[
+      df_temp,
+      on = c("date", "city", "year")
+    ]
+    
+    df
+  })
+  
+  output$download_csv <- downloadHandler(
+    
+    filename = function() {
+      paste0(
+        "sample_data_",
+        Sys.Date(),
+        ".csv"
+      )
+    },
+    
+    content = function(file) {
+      
+      data.table::fwrite(
+        joined_data(),
+        file
+      )
+    }
+  )
   
 }
 
