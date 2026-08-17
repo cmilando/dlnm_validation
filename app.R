@@ -6,6 +6,8 @@ library(readr)
 library(data.table)
 library(ggcube)
 library(ggplot2)
+library(bslib)
+
 
 source("app_fcns.R")
 
@@ -39,6 +41,14 @@ ui <- fluidPage(
   "))
   ),
   
+  # theme = bs_theme(
+  #   version = 5,
+  #   bootswatch = "flatly"
+  # ),
+  
+  div(
+    style = "max-width: 900px; margin: auto;",
+  
   tabsetPanel(
     
     # -----------------------------------------------------
@@ -46,7 +56,7 @@ ui <- fluidPage(
     # -----------------------------------------------------
     
     tabPanel(
-      "Baseline Population",
+      "Population",
       
       helpText("This page allows the user to define the baseline population,
                along with year trends, day of week trends."),
@@ -344,7 +354,7 @@ ui <- fluidPage(
     # -----------------------------------------------------
     
     tabPanel(
-      "Create RR surface",
+      "RR surface",
       
       helpText("This page allows the user to defined the RR surface visually.
                The spline degree can change how linear the surfaces interact.
@@ -407,7 +417,7 @@ ui <- fluidPage(
     ),
     
     tabPanel(
-      "True RR Surface",
+      "True RR",
       
       helpText("This page converts the user-defined surface from the 
                previous page into the true data generating mechansim.
@@ -554,7 +564,7 @@ ui <- fluidPage(
     # -----------------------------------------------------
     
     tabPanel(
-      "Model Results",
+      "Model",
       
       helpText("The baseline case counts are modified according to the specified relative-risk surface to create an updated set of cases. A small amount of random variation is added to the simulated values. These updated cases are then analyzed using a quasi-Poisson regression model to estimate the temperature–risk relationship and assess how closely the fitted model recovers the specified relative-risk surface."),
       
@@ -573,6 +583,34 @@ ui <- fluidPage(
           numericInput("model_error_sd",
                        "Model error",
                        value = 0.1, min = 0.0000001)
+        ),
+        
+        column(
+          width = 3,
+          conditionalPanel(
+            "input.baseline > 0",
+            
+            numericInput(
+              "case_ymin",
+              "Ymin",
+              value = 0,
+              width = "100%"
+            )
+          )
+        ),
+        
+        column(
+          width = 3,
+          conditionalPanel(
+            "input.baseline > 0",
+            
+            numericInput(
+              "case_ymax",
+              "Ymax",
+              value = 0,
+              width = "100%"
+            )
+          )
         )
         
       ),
@@ -692,7 +730,7 @@ ui <- fluidPage(
     ),
     
     tabPanel(
-      "Download Data",
+      "Download",
       
       fluidRow(
         
@@ -726,6 +764,7 @@ ui <- fluidPage(
       )
     )
     
+   )
   )
 )
 
@@ -1291,7 +1330,8 @@ server <- function(input, output, session) {
         y = "Deaths",
         title = "Updated vs predicted deaths"
       ) +
-      theme_minimal()
+      theme_minimal() + 
+      coord_cartesian(ylim = c(input$case_ymin, input$case_ymax))
   })
   
   output$rr_lag <- renderPlot({
@@ -1392,6 +1432,22 @@ server <- function(input, output, session) {
     summary(
       temp_data()
     )
+  })
+  
+  observeEvent(input$baseline, {
+    
+    updateNumericInput(
+      session,
+      "case_ymin",
+      value = input$baseline * 0.5
+    )
+    
+    updateNumericInput(
+      session,
+      "case_ymax",
+      value = input$baseline * 1.5
+    )
+    
   })
   
   output$rr_overall <- renderPlot({
