@@ -48,6 +48,9 @@ ui <- fluidPage(
     tabPanel(
       "Baseline Population",
       
+      helpText("This page allows the user to define the baseline population,
+               along with year trends, day of week trends."),
+      
       fluidRow(
         
         # -----------------------------------------------------
@@ -257,6 +260,8 @@ ui <- fluidPage(
     tabPanel(
       "Temperature",
       
+      helpText("This page reads in the temperature file listed below"),
+      
       fluidRow(
         
         # -----------------------------------------------------
@@ -348,6 +353,13 @@ ui <- fluidPage(
     tabPanel(
       "Create RR surface",
       
+      helpText("This page allows the user to defined the RR surface visually.
+               The spline degree can change how linear the surfaces interact.
+               The lag graph determines how the surface behaves in the lag 
+               dimension. This is not fully bulletproof,
+               there are likely some edge cases that will break how this 
+               works."),
+      
       fluidRow(
         
         column(
@@ -403,6 +415,19 @@ ui <- fluidPage(
     
     tabPanel(
       "True RR Surface",
+      
+      helpText("This page converts the user-defined surface from the 
+               previous page into the true data generating mechansim.
+               The boxes below are used to create the crossbasis object,
+               and then the beta coefficients are estimated using matrix
+               inversion of the created RR surface. Then on this page, these
+               beta coefficients are used to estimate the true surface. This
+               process is necessary because there is no guarantee that the
+               user-generated surface on the previous page will be able
+               to be matched by any set of splines. Following the result of
+               this page we have a surface and beta coefficients that we 
+               can use to evaluate DLNM performance under a variety of 
+               scenarios"),
       
       fluidRow(
         
@@ -518,7 +543,11 @@ ui <- fluidPage(
       combinedRRPlotUI(
         "true_rr_surface",
         "True RR Surface"
-      )
+      ),
+      
+      plotOutput("trueRRCumulative",               
+                 width = "100%",
+                 height = "300px")
     ),
     
     
@@ -693,7 +722,6 @@ server <- function(input, output, session) {
     
     RR_mat <- do.call(cbind, lapply(1:nx, RR))
     
-    print(dim(RR_mat))
     RR_mat
     
   })
@@ -778,8 +806,7 @@ server <- function(input, output, session) {
         predlag = l,
         cen = input$cen
       )
-      
-      
+    
       # ---------------------------------------------------
       # Flatten observed RR surface
       # ---------------------------------------------------
@@ -790,13 +817,51 @@ server <- function(input, output, session) {
       
       tRR_mat_flat <- matrix(tRR_mat, ncol = 1)
       
-      
       # ---------------------------------------------------
       # Estimate beta
       # ---------------------------------------------------
       
       beta <- MASS::ginv(Xpred) %*% log(tRR_mat_flat)
       
+      ## get Cumulative
+      ## take from crosspred
+      ## i dont think you can get cumse becase you 
+      ## don't know the outcomes yet,
+      ## and maybe thats ok for the DGM
+      Xpredall <- 0
+      cumfit <- matrix(0, length(x), length(l))
+      currMin = Inf
+      xatCurrMin = NA
+      
+      for (i in seq(length(l))) {
+        ind <- seq(length(x)) + length(x) * (i - 1)
+        Xpredall <- Xpredall + Xpred[ind, , drop = FALSE]
+        cumfit[, i] <- Xpredall %*% beta
+        localMin = cumfit[which.min(cumfit[, i]), i]
+        if(localMin < currMin) {
+          currMin = localMin
+          xatCurrMin = x[which.min(cumfit[, i])]
+        }
+      }
+      
+      # and then recenter
+      Xpred <- dlnm:::mkXpred(
+        "cb",
+        cp_basis,
+        at = x,
+        predvar = x,
+        predlag = l,
+        cen = xatCurrMin
+      )
+      
+      Xpredall <- 0
+      cumfit <- matrix(0, length(x), length(l))
+      
+      for (i in seq(length(l))) {
+        ind <- seq(length(x)) + length(x) * (i - 1)
+        Xpredall <- Xpredall + Xpred[ind, , drop = FALSE]
+        cumfit[, i] <- Xpredall %*% beta
+      }
       
       # ---------------------------------------------------
       # Rebuild RR surface
@@ -845,7 +910,8 @@ server <- function(input, output, session) {
         beta = beta,
         data = rebuild_RRmat,
         Xpred = Xpred,
-        RRmat = rebuild_RRmat_out
+        RRmat = rebuild_RRmat_out,
+        cumfit = cumfit
       )
     }
   )
@@ -860,6 +926,12 @@ server <- function(input, output, session) {
     x = reactive(plot1$grid()$x),
     l = reactive(plot3$grid()$x)
   )
+  
+  output$trueRRCumulative <- renderPlot({
+    nc = ncol(true_rr()$cumfit)
+    plot(x = plot1$grid()$x,
+         y = exp(true_rr()$cumfit[, nc]))
+  })
   
 }
 
