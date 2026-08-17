@@ -1,10 +1,13 @@
-
+source("00_get_baseline_cases_exposure.R")
+source("00_temp_data.R")
+source("01_make3d.R")
+source("02_makeXpredall.R")
 # because you are passing in the whole matrix, you don't need to
 # group or anything
-x_cen = which.min(exposure_timeseries)
+x_cen = which.min(x1$tmaxF)
 x_cen
 
-origbasis <- dlnm::crossbasis(exposure_timeseries,
+origbasis <- dlnm::crossbasis(x1$tmaxF,
                         argvar = list(fun = 'ns', knots = exp_knots),
                         arglag = list(fun = 'ns', knots = 2),
                         lag = 5)
@@ -46,19 +49,28 @@ dim(newbasis)
 #
 set.seed(12345)
 death_updated <- numeric(nrow(x1))
+deaths_expected_value <- numeric(nrow(x1))
 options(warn = 1)
+# error = rnorm(nrow(x1), sd = 0.5)
+odiff = 0.0001
+error = rnorm(nrow(x1), sd = odiff)
+hist(error)
+# error = rep(0, nrow(x1)) 
 for(i in 1:length(death_updated)) {
+  sum(newbasis[i, ] * beta)
   # so first get the expected value
   # E[y] = A * exp(B0 + B1*cb1 + ...)
-  deaths_expected_value = x1$death[i] * exp(sum(newbasis[i, ] * beta))
+  deaths_expected_value[i] = x1$death[i] * exp(sum(newbasis[i, ] * beta) + error[i])
+  death_updated[i] = rpois(n = 1, lambda = deaths_expected_value[i])
   #print(deaths_expected_value)
   # then use this in a poisson draw
   # governed by  .... variance and dispersion ??
-  death_updated[i] = rpois(1, deaths_expected_value)
   # death_updated[i] = round(deaths_expected_value)
 }
+
+death_updated
 x1$death_updated <- death_updated
 # so now,
-
-
+x1
+## need to add disper
 

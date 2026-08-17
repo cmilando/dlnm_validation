@@ -42,11 +42,224 @@ ui <- fluidPage(
   tabsetPanel(
     
     # -----------------------------------------------------
-    # First tab: all three plots
+    # Settings and help text
     # -----------------------------------------------------
     
     tabPanel(
-      "RR Profiles",
+      "Baseline Population",
+      
+      fluidRow(
+        
+        # -----------------------------------------------------
+        # Baseline cases
+        # -----------------------------------------------------
+        
+        column(
+          width = 6,
+          
+          div(
+            class = "plot-container",
+            
+            h4(
+              "Baseline Cases",
+              style = "margin-top: 0; margin-bottom: 10px;"
+            ),
+            
+            numericInput(
+              "baseline",
+              "Baseline daily cases",
+              value = 1000,
+              min = 0,
+              step = 10,
+              width = "100%"
+            ),
+            
+            numericInput(
+              "sd",
+              "Random variation (SD)",
+              value = 0.01,
+              min = 0,
+              step = 0.01,
+              width = "100%"
+            )
+          )
+        ),
+        
+        
+        # -----------------------------------------------------
+        # Trends
+        # -----------------------------------------------------
+        
+        column(
+          width = 6,
+          
+          div(
+            class = "plot-container",
+            
+            h4(
+              "Trends",
+              style = "margin-top: 0; margin-bottom: 10px;"
+            ),
+            
+            numericInput(
+              "year_growth",
+              "Annual growth",
+              value = 0.02,
+              min = -1,
+              max = 10,
+              step = 0.01,
+              width = "100%"
+            ),
+            
+            numericInput(
+              "dow_effect",
+              "Day-of-week effect",
+              value = 0.05,
+              min = 0,
+              max = 1,
+              step = 0.01,
+              width = "100%"
+            )
+          )
+        )
+        
+      ),
+      
+      
+      fluidRow(
+        
+        # -----------------------------------------------------
+        # Location
+        # -----------------------------------------------------
+        
+        column(
+          width = 3,
+          
+          div(
+            class = "plot-container",
+            
+            h4(
+              "Location",
+              style = "margin-top: 0; margin-bottom: 10px;"
+            ),
+            
+            textInput(
+              "city",
+              "City",
+              value = "BOSTON",
+              width = "100%"
+            )
+          )
+          
+        ),
+        
+        column(
+          width = 3,
+          
+          div(
+            class = "plot-container",
+            
+            h4(
+              "Seed",
+              style = "margin-top: 0; margin-bottom: 10px;"
+            ),
+            
+            numericInput(
+              "seed",
+              "Random Seed",
+              value = 123,
+              width = "100%"
+            )
+          )
+          
+        ),
+        
+        # -----------------------------------------------------
+        # Time period
+        # -----------------------------------------------------
+        
+        column(
+          width = 6,
+          
+          div(
+            class = "plot-container",
+            
+            h4(
+              "Time Period",
+              style = "margin-top: 0; margin-bottom: 10px;"
+            ),
+            
+            fluidRow(
+              
+              column(
+                width = 6,
+                
+                numericInput(
+                  "baseline_yr",
+                  "Start year",
+                  value = 1980,
+                  min = 1980,
+                  max = 1999,
+                  step = 1,
+                  width = "100%"
+                )
+              ),
+              
+              column(
+                width = 6,
+                
+                numericInput(
+                  "end_yr",
+                  "End year",
+                  value = 1999,
+                  min = 1900,
+                  max = 2100,
+                  step = 1,
+                  width = "100%"
+                )
+              )
+              
+            )
+          )
+        )
+        
+      ),
+      
+      
+      # -------------------------------------------------------
+      # Preview
+      # -------------------------------------------------------
+      
+      fluidRow(
+        
+        column(
+          width = 12,
+          
+          div(
+            class = "plot-container",
+            
+            h4(
+              "Baseline Population Preview",
+              style = "margin-top: 0; margin-bottom: 10px;"
+            ),
+            
+            plotOutput(
+              "baseline_cases_plot",
+              width = "100%",
+              height = "300px"
+            )
+          )
+        )
+        
+      )
+    ),
+    
+    # -----------------------------------------------------
+    # Relative Risk
+    # -----------------------------------------------------
+    
+    tabPanel(
+      "Create RR surface",
       
       fluidRow(
         
@@ -104,18 +317,10 @@ ui <- fluidPage(
     # -----------------------------------------------------
     
     tabPanel(
-      "Results",
+      "Population",
       
       h3("Results"),
       p("Results will go here.")
-      
-    ),
-    
-    tabPanel(
-      "Settings",
-      
-      h3("Settings"),
-      p("Settings will go here.")
       
     )
     
@@ -123,6 +328,35 @@ ui <- fluidPage(
 )
 server <- function(input, output, session) {
   
+  ## *******************************
+  baseline_cases <- reactive({
+    
+    get_baseline_cases(
+      baseline = input$baseline,
+      sd = input$sd,
+      year_growth = input$year_growth,
+      dow_effect = input$dow_effect,
+      city = input$city,
+      baseline_yr = input$baseline_yr,
+      end_yr = input$end_yr,
+      seed = input$seed
+    )
+  })
+  
+  output$baseline_cases_plot <- renderPlot({
+    
+    df <- baseline_cases()
+    
+    plot(
+      df$date,
+      df$death,
+      type = "l",
+      xlab = "Date",
+      ylab = "Cases"
+    )
+  })
+  
+  ## *******************************
   plot1 <- rtPlotServer(
     "plot1",
     x_init = c(1, 10, 20, 30),

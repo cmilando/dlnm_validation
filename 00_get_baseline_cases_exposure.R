@@ -1,88 +1,77 @@
+library(data.table)
+
 # set cases based on a year trend
-get_baseline_cases <- function(baseline = 100,
-                               variance = 0.05,
-                      baseline_yr = 2010,
-                      year_beta = 1.2) {
-  
-  
-  variance = baseline * variance
+get_baseline_cases <- function(
+    baseline,
+    sd,
+    year_growth,
+    dow_effect,
+    city,
+    baseline_yr = 1980,
+    end_yr = 1999
+) {
+
+  set.seed(123)
   
   # make the skeleton you need later
-  get_summer_dt <- function(yy) {
-    st = lubridate::make_date(yy, 5, 1)
-    ed = lubridate::make_date(yy, 9, 30)
+  get_year_dt <- function(yy) {
+    st = lubridate::make_date(yy, 1, 1)
+    ed = lubridate::make_date(yy, 12, 31)
     dt = seq.Date(st, ed, by = 'day')
     return(dt)
   }
   
-  all_dt <- lapply(2010:2020, get_summer_dt)
+  all_dt <- lapply(baseline_yr:end_yr, get_year_dt)
   all_dt <- do.call(c, all_dt)
   
-  df <- data.frame(date = all_dt)
-  df$year <- lubridate::year(df$date)
+  # make dt
+  df <- data.table(date = as.IDate(all_dt), city = city)
+  df[,year := year(all_dt)]
+  df[,dow := wday(all_dt)]
+  df[,month := month(all_dt)]
+  df[,idx := 1:nrow(df)]
   
-  df_l <- split(df, f = df$year)
-  n_years <- length(df_l)
+  # add year trend but compounded daily
+  # (1 + Growth Rate)^(1/365)-1
+  daily_growth = (1 + year_growth)^(1/365) - 1
+  df[,death := baseline * exp(daily_growth * idx)]
   
-  for(yr_i in 1:n_years) {
-    
-    n_rows <- nrow(df_l[[yr_i]])
-    
-    # need to work in log-space so the coefficients work out
-    df_l[[yr_i]]$death_true =
-      # baseline + how much to increase by year
-      baseline * (year_beta)^(df_l[[yr_i]]$year - baseline_yr)
-    
-    # add some random noise
-    v1 <- sample(c(-1, 0, 1), size = n_rows, replace = T)
-    v2 <- rpois(n_rows, variance)
-    df_l[[yr_i]]$v1 <- v1
-    df_l[[yr_i]]$v2 <- v2
-    df_l[[yr_i]]$death = df_l[[yr_i]]$death_true + v1 * v2
-    
-    # make sure its an integer
-    df_l[[yr_i]]$death <- round(df_l[[yr_i]]$death)
-    
+  # add day of week trend
+  dow_sine <- function(x) {
+    A = dow_effect # amplitude
+    B = 2*pi/7 # frequency
+    C = 0 # phase shift
+    D = 1 # vertical shift
+    A * sin(B*x + C) + D
   }
+  # plot(dow_sine(1:7), type = 'l')
+  # points(dow_sine(1:7))
+  df[,death := death * dow_sine(idx)]
   
-  df <- do.call(rbind, df_l)
+  # add noise based on sd
+  # applied in log space to make sure its positive
+  noise = rnorm(nrow(df), sd = sd)
+  df[, death := exp(log(death) + noise)]
   
-  return(df[, c('date', 'death')])
+  # round to integer
+  df[, death := round(death)]
+  
+  # add strata
+  df[, strata := paste0(city, ":", year, ":", month, ":", dow)]
+
+  return(df)
   
 }
 
-x1 <- get_baseline_cases(baseline = 1e5, variance = 0.2)
+x1 <- get_baseline_cases(baseline = 1000, 
+                         sd = 0.01,
+                         year_growth = 0.02,
+                         dow_effect = 0.05,
+                         city = 'BOSTON')
+
 head(x1)
 Ndays <- nrow(x1)
 plot(x1$date, x1$death)
 
 
-x1$dow <- lubridate::wday(x1$date, label = T)
-x1$month <- lubridate::month(x1$date, label = T)
-x1$year <- lubridate::year(x1$date)
 
-x1$strata <- paste0(x1$TOWN20, ":", x1$year, ":",
-                    x1$month, ":", x1$dow)
-
-##
-
-library(dlnm)
-
-get_exposure_ts <- function(Ndays) {
-  set.seed(123)
-  n = Ndays
-  x = 1:Ndays
-  aa = 10
-  bb  = 0.2
-  cc = 100 
-  vv = 23.25- 4
-  ytrue = aa * sin(bb / (2*pi)* (x  + cc)) + vv
-  y = ytrue + rnorm(n, sd = 0.5)
-  # plot(x, ytrue, 'l')
-  # points(x, y, col = 'red')
-  # abline(h = 20, col = 'brown')
-  return(y)
-}
-
-
-exposure_timeseries <- get_exposure_ts(Ndays)

@@ -41,12 +41,11 @@ library(data.table)
 ##        goes between each one (#3)
 
 #
-x = seq(0, 30, by = 0.25)
+x = seq(min(x1$tmaxF), max(x1$tmaxF), by = 0.25)
 
-
-f_exp_initial = function(x) ifelse(x<20, 1, (x^3.5)/6e5+0.95)
-f_exp_max = function(x) ifelse(x<20, 1, (x^4)/6e5+0.75)
-plot(x, f_exp_initial(x), type = 'l', col = 'blue', ylim = c(1, 2))
+f_exp_initial = function(x) ifelse(x<75, 1, 1* exp(0.01*(x-75)))
+f_exp_max = function(x) ifelse(x<75, 1, 1* exp(0.02*(x-75)))
+plot(x, f_exp_initial(x), type = 'l', col = 'blue', ylim = c(1, 3))
 lines(x, f_exp_max(x), type = 'l', col = 'red')
 
 maxlag = 5
@@ -56,8 +55,8 @@ f_lag_base = f_lag(l)
 f_lag_x = function(x) scales::rescale(
   f_lag_base, to = c(f_exp_initial(x), f_exp_max(x)))
 
-plot(l, f_lag_x(21), type = 'l', ylim = c(1, 2))
-lines(l, f_lag_x(30), type = 'l', col = 'red')
+plot(l, f_lag_x(80), type = 'l', ylim = c(1, 2))
+lines(l, f_lag_x(90), type = 'l', col = 'red')
 
 local_rescale <- function(xvec, scalefirst, scalelast) {
   ## another way of saying this is I want scalefirst

@@ -8,7 +8,8 @@ setorderv(xpred_base, "x")
 xpred_base
 
 # ok now each gets a onebasis
-exp_knots = quantile(exposure_timeseries, probs = c(.5, .9))
+exp_knots = quantile(temp_data$tmaxF, probs = c(.5, .9))
+exp_knots
 
 # make crossbasis
 
@@ -151,13 +152,13 @@ p1 = ggplot(RR_df) +
   geom_surface_3d(mapping= aes(x = x, y = l, z = RR, 
                                fill = RR)) +
   coord_3d() + scale_fill_gradient2() +
-  scale_z_continuous(limits = c(0.95, 2.2))
+  scale_z_continuous(limits = c(0.95, 1.7))
 
 p2 = ggplot(rebuild_RRmat) +
   geom_surface_3d(mapping= aes(x = x, y = l, z = RR, 
                                fill = RR)) +
   coord_3d() + scale_fill_gradient2() +
-  scale_z_continuous(limits = c(0.95, 2.2))
+  scale_z_continuous(limits = c(0.95, 1.7))
 
 # works !!!
 p1 + p2
