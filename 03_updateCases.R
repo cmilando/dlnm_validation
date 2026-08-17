@@ -23,8 +23,10 @@ origbasis <- dlnm::crossbasis(x1$tmaxF,
 # #                       Boundary.knots = x_Boundary)
 # 
 basiscen <- origbasis[x_cen, ]
-
 newbasis <- scale(origbasis, center = basiscen, scale = FALSE)
+
+head(newbasis)
+
 dim(newbasis)
 # 
 # # get coefficients

@@ -556,11 +556,139 @@ ui <- fluidPage(
     # -----------------------------------------------------
     
     tabPanel(
-      "Population",
+      "Model Results",
       
-      h3("Results"),
-      p("Results will go here.")
+      fluidRow(
+        
+        column(
+          width = 3,
+          numericInput("case_year",
+                       "Case Year",
+                       value = 1980,
+                       min = 1981, max = 1999, step = 1)
+        ),
+        
+        column(
+          width = 3,
+          numericInput("model_error_sd",
+                       "Model error",
+                       value = 0.1, min = 0.0000001)
+        )
+        
+      ),
       
+      # =====================================================
+      # Case data
+      # =====================================================
+      
+      fluidRow(
+        
+        column(
+          width = 12,
+          
+          div(
+            class = "plot-container",
+            
+            h4(
+              "Updated Case Data",
+              style = "margin-top: 0; margin-bottom: 10px;"
+            ),
+            
+            plotOutput(
+              "case_timeseries",
+              width = "100%",
+              height = "300px"
+            )
+          )
+        )
+        
+      ),
+      
+      
+      # =====================================================
+      # Model outputs
+      # =====================================================
+      
+      fluidRow(
+        
+        column(
+          width = 6,
+          
+          div(
+            class = "plot-container",
+            
+            h4(
+              "Exposure–Response",
+              style = "margin-top: 0; margin-bottom: 10px;"
+            ),
+            
+            plotOutput(
+              "rr_overall",
+              width = "100%",
+              height = "350px"
+            )
+          )
+        ),
+        
+        column(
+          width = 6,
+          
+          div(
+            class = "plot-container",
+            
+            h4(
+              "Lag–Response",
+              style = "margin-top: 0; margin-bottom: 10px;"
+            ),
+            
+            plotOutput(
+              "rr_lag",
+              width = "100%",
+              height = "350px"
+            )
+          )
+        )
+        
+      ),
+      
+      
+      # =====================================================
+      # Model summary
+      # =====================================================
+      
+      fluidRow(
+        
+        column(
+          width = 4,
+          
+          div(
+            class = "plot-container",
+            
+            h4(
+              "Regression Coefficients",
+              style = "margin-top: 0; margin-bottom: 10px;"
+            ),
+            
+            tableOutput("model_coefficients")
+          )
+        ),
+        
+        column(
+          width = 8,
+          
+          div(
+            class = "plot-container",
+            
+            h4(
+              "Model Summary",
+              style = "margin-top: 0; margin-bottom: 10px;"
+            ),
+            
+            verbatimTextOutput("model_summary")
+          )
+        )
+        
+      )
     )
     
   )
@@ -931,6 +1059,292 @@ server <- function(input, output, session) {
     nc = ncol(true_rr()$cumfit)
     plot(x = plot1$grid()$x,
          y = exp(true_rr()$cumfit[, nc]))
+  })
+  
+  ## ====================================================
+  model_results <- reactive({
+    
+    # -----------------------------------------------------
+    # Data
+    # -----------------------------------------------------
+    
+    df_cases <- baseline_cases()
+    df_temp  <- temp_data()
+
+    df <- df_cases[
+      df_temp, on = c('date', 'city', 'year')
+    ]
+    
+    # -----------------------------------------------------
+    # Centering temperature
+    # -----------------------------------------------------
+    
+    x_cen <- which.min(
+      abs(
+        df$tmaxF - input$cen
+      )
+    )
+    
+    # -----------------------------------------------------
+    # Original crossbasis
+    # -----------------------------------------------------
+    
+    origbasis <- dlnm::crossbasis(
+      df$tmaxF,
+      argvar = argvar(),
+      arglag = arglag(),
+      lag = input$maxlag
+    )
+    
+    # -----------------------------------------------------
+    # Recenter basis
+    # -----------------------------------------------------
+    
+    basiscen <- origbasis[x_cen, ]
+    
+    newbasis <- scale(
+      origbasis,
+      center = basiscen,
+      scale = FALSE
+    )
+    
+    # -----------------------------------------------------
+    # Generate updated deaths
+    # -----------------------------------------------------
+    
+    set.seed(input$seed)
+    
+    error <- rnorm(
+      nrow(df),
+      sd = input$model_error_sd
+    )
+    
+    deaths_expected_value <- numeric(
+      nrow(df)
+    )
+    
+    death_updated <- numeric(
+      nrow(df)
+    )
+    
+    for (i in seq_len(nrow(df))) {
+      
+      deaths_expected_value[i] <-
+        df$death[i] *
+        exp(
+          sum(
+            newbasis[i, ] * true_rr()$beta
+          ) +
+            error[i]
+        )
+      
+      death_updated[i] <- rpois(
+        n = 1,
+        lambda = deaths_expected_value[i]
+      )
+    }
+    
+    df$death_updated <- death_updated
+    
+    # -----------------------------------------------------
+    # Regression model
+    # -----------------------------------------------------
+    
+    m_sub <- gnm::gnm(
+      death_updated ~ newbasis,
+      data = df,
+      family = quasipoisson,
+      eliminate = factor(strata)
+    )
+    
+    # -----------------------------------------------------
+    # Crossprediction
+    # -----------------------------------------------------
+    
+    cp <- dlnm::crosspred(
+      newbasis,
+      m_sub,
+      cen = min(df$tmaxF),
+      by = 0.1,
+      bylag = 0.25
+    )
+    
+    xcen <- cp$predvar[
+      which.min(cp$allRRfit)
+    ]
+    
+    cp <- dlnm::crosspred(
+      newbasis,
+      m_sub,
+      cen = xcen,
+      by = 0.1,
+      bylag = 0.25
+    )
+    
+    # -----------------------------------------------------
+    # Predicted deaths
+    # -----------------------------------------------------
+    
+    death_pred <- exp(
+      predict(m_sub)
+    )
+    
+    df$death_pred <- c(
+      rep(NA, input$maxlag),
+      death_pred
+    )
+    
+    # -----------------------------------------------------
+    # Return everything
+    # -----------------------------------------------------
+    
+    list(
+      data = df,
+      basis = newbasis,
+      model = m_sub,
+      crosspred = cp,
+      beta = true_rr()$beta,
+      beta_estimated = coef(m_sub)
+    )
+    
+  })
+  
+  output$case_timeseries <- renderPlot({
+    
+    res <- model_results()
+    
+    df <- res$data
+    
+    ggplot(
+      subset(df, year(date) == input$case_year)
+    ) +
+      geom_point(
+        aes(
+          x = date,
+          y = death_updated
+        )
+      ) +
+      geom_line(
+        aes(
+          x = date,
+          y = death_pred
+        ),
+        linewidth = 0.8,
+        col = 'red'
+      ) +
+      labs(
+        x = NULL,
+        y = "Deaths",
+        title = "Updated vs predicted deaths"
+      ) +
+      theme_minimal()
+  })
+  
+  output$rr_lag <- renderPlot({
+    
+    cp <- model_results()$crosspred
+    
+    mat <- cp$matRRfit
+    
+    df <- as.data.table(
+      mat,
+      keep.rownames = "temperature"
+    )
+    
+    df <- melt(
+      df,
+      id.vars = "temperature"
+    )
+    
+    names(df) <- c(
+      "temperature",
+      "lag",
+      "RR"
+    )
+    
+    df$temperature <- as.numeric(
+      df$temperature
+    )
+    
+    df$lag <- as.numeric(
+      as.character(df$lag)
+    )
+    
+    ggplot(
+      df,
+      aes(
+        x = lag,
+        y = RR,
+        group = temperature
+      )
+    ) +
+      geom_line(
+        alpha = 0.5
+      ) +
+      geom_hline(
+        yintercept = 1,
+        linetype = "dashed"
+      ) +
+      labs(
+        x = "Lag",
+        y = "Relative Risk"
+      ) +
+      theme_minimal()
+  })
+  
+  output$model_coefficients <- renderTable({
+    
+    res <- model_results()
+    
+    data.frame(
+      Term = names(res$beta_estimated),
+      Estimated = as.numeric(
+        res$beta_estimated
+      ),
+      True = as.numeric(
+        res$beta
+      )
+    )
+    
+  },
+  digits = 4)
+  
+  output$model_summary <- renderPrint({
+    
+    summary(
+      model_results()$model
+    )
+  })
+  
+  output$rr_overall <- renderPlot({
+    
+    cp <- model_results()$crosspred
+    
+    df <- data.frame(
+      x = cp$predvar,
+      RR = cp$allRRfit,
+      low = cp$allRRlow,
+      high = cp$allRRhigh
+    )
+    
+    ggplot(df, aes(x = x, y = RR)) +
+      geom_ribbon(
+        aes(
+          ymin = low,
+          ymax = high
+        ),
+        alpha = 0.2
+      ) +
+      geom_line() +
+      geom_hline(
+        yintercept = 1,
+        linetype = "dashed"
+      ) +
+      labs(
+        x = "Temperature",
+        y = "Relative Risk"
+      ) +
+      theme_minimal()
   })
   
 }
