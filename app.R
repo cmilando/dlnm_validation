@@ -291,29 +291,7 @@ ui <- fluidPage(
         ),
         
         
-        # -----------------------------------------------------
-        # City
-        # -----------------------------------------------------
-        
-        column(
-          width = 6,
-          
-          div(
-            class = "plot-container",
-            
-            h4(
-              "Location",
-              style = "margin-top: 0; margin-bottom: 10px;"
-            ),
-            
-            textInput(
-              "temp_city",
-              "City",
-              value = "BOSTON",
-              width = "100%"
-            )
-          )
-        )
+
         
       ),
       
@@ -831,7 +809,7 @@ server <- function(input, output, session) {
     
     temp_data[
       ,
-      city := input$temp_city
+      city := input$city
     ]
     
     temp_data
@@ -1031,11 +1009,11 @@ server <- function(input, output, session) {
         # }
       }
       
-      cout <- exp(cumfit)
-      names(cout) <- c('temp', paste0("lag", l))
-      row.names(cout) <- x
-      write.csv(cout, "cumfit_manual.csv", quote = F)
-      
+      # cout <- exp(cumfit)
+      # names(cout) <- c('temp', paste0("lag", l))
+      # row.names(cout) <- x
+      # write.csv(cout, "cumfit_manual.csv", quote = F)
+      # 
       # and then recenter
       # Xpred <- dlnm:::mkXpred(
       #   "cb",
@@ -1203,16 +1181,17 @@ server <- function(input, output, session) {
     
     for (i in seq_len(nrow(df))) {
       
-      # generating the simuluated data
+      # generating the expcted value
       deaths_expected_value[i] <-
         df$death[i] * exp(sum(newbasis[i, ] * true_rr()$beta)  + error[i])
       
+      # and then taking a draw from a poisson distribution
+      # using that value --> should you add additional variance
       death_updated[i] <- rpois(
         n = 1,
         lambda = deaths_expected_value[i]
       )
       
-      # death_updated[i] <- deaths_expected_value[i]
 
     }
     
@@ -1419,8 +1398,6 @@ server <- function(input, output, session) {
     
     cp <- model_results()$crosspred
     
-    write.csv(exp(cp$cumfit), "cumfit_auto.csv")
-
     df <- data.frame(
       x = cp$predvar,
       RR = cp$allRRfit,
