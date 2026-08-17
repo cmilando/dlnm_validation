@@ -254,6 +254,93 @@ ui <- fluidPage(
       )
     ),
     
+    tabPanel(
+      "Temperature",
+      
+      fluidRow(
+        
+        # -----------------------------------------------------
+        # Temperature file
+        # -----------------------------------------------------
+        
+        column(
+          width = 6,
+          
+          div(
+            class = "plot-container",
+            
+            h4(
+              "Temperature Data",
+              style = "margin-top: 0; margin-bottom: 10px;"
+            ),
+            
+            p(
+              strong("File: "),
+              "getdailystat73.149.185.213.228.6.19.51"
+            ),
+            
+            p(
+              "Daily maximum temperature (°F), 1980–1999."
+            )
+          )
+        ),
+        
+        
+        # -----------------------------------------------------
+        # City
+        # -----------------------------------------------------
+        
+        column(
+          width = 6,
+          
+          div(
+            class = "plot-container",
+            
+            h4(
+              "Location",
+              style = "margin-top: 0; margin-bottom: 10px;"
+            ),
+            
+            textInput(
+              "temp_city",
+              "City",
+              value = "BOSTON",
+              width = "100%"
+            )
+          )
+        )
+        
+      ),
+      
+      
+      # -------------------------------------------------------
+      # Preview
+      # -------------------------------------------------------
+      
+      fluidRow(
+        
+        column(
+          width = 12,
+          
+          div(
+            class = "plot-container",
+            
+            h4(
+              "Temperature Preview",
+              style = "margin-top: 0; margin-bottom: 10px;"
+            ),
+            
+            plotOutput(
+              "temperature_plot",
+              width = "100%",
+              height = "300px"
+            )
+          )
+        )
+        
+      )
+    ),
+    
     # -----------------------------------------------------
     # Relative Risk
     # -----------------------------------------------------
@@ -353,6 +440,73 @@ server <- function(input, output, session) {
       type = "l",
       xlab = "Date",
       ylab = "Cases"
+    )
+  })
+  
+  ## *******************************
+  
+  temp_data <- reactive({
+    
+    temp_data <- read.table(
+      "getdailystat73.149.185.213.228.6.19.51",
+      sep = ",",
+      colClasses = c(
+        "numeric",
+        rep("character", 3)
+      )
+    )
+    
+    names(temp_data) <- c(
+      "tmaxF",
+      "year",
+      "month",
+      "day"
+    )
+    
+    setDT(temp_data)
+    
+    temp_data[
+      ,
+      dtstr := paste0(
+        trimws(year), "-",
+        trimws(month), "-",
+        trimws(day)
+      )
+    ]
+    
+    temp_data[
+      ,
+      date := as.IDate(dtstr)
+    ]
+    
+    temp_data[
+      ,
+      c("month", "day", "dtstr") := NULL
+    ]
+    
+    temp_data[
+      ,
+      year := year(date)
+    ]
+    
+    temp_data[
+      ,
+      city := input$temp_city
+    ]
+    
+    temp_data
+  })
+  
+  output$temperature_plot <- renderPlot({
+    
+    df <- temp_data()
+    
+    plot(
+      df$date,
+      df$tmaxF,
+      type = "l",
+      xlab = "Date",
+      ylab = "Maximum temperature (°F)"
     )
   })
   
