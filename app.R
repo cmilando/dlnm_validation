@@ -1207,12 +1207,12 @@ server <- function(input, output, session) {
       deaths_expected_value[i] <-
         df$death[i] * exp(sum(newbasis[i, ] * true_rr()$beta)  + error[i])
       
-      # death_updated[i] <- rpois(
-      #   n = 1,
-      #   lambda = deaths_expected_value[i]
-      # )
+      death_updated[i] <- rpois(
+        n = 1,
+        lambda = deaths_expected_value[i]
+      )
       
-      death_updated[i] <- deaths_expected_value[i]
+      # death_updated[i] <- deaths_expected_value[i]
 
     }
     
