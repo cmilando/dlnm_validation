@@ -636,6 +636,12 @@ ui <- fluidPage(
               "case_timeseries",
               width = "100%",
               height = "300px"
+            ),
+            
+            plotOutput(
+              "temp_timeseries",
+              width = "100%",
+              height = "300px"
             )
           )
         )
@@ -1332,6 +1338,29 @@ server <- function(input, output, session) {
       ) +
       theme_minimal() + 
       coord_cartesian(ylim = c(input$case_ymin, input$case_ymax))
+  })
+  
+  output$temp_timeseries <- renderPlot({
+    
+    df <- temp_data()
+    
+    ggplot(
+      subset(df, year(date) == input$case_year)
+    ) +
+      geom_line(
+        aes(
+          x = date,
+          y = tmaxF
+        ),
+        linewidth = 0.8,
+        linetype = '11',
+        color = 'purple'
+      ) +
+      labs(
+        x = NULL,
+        y = "Daily Max Temperature (F)"
+      ) +
+      theme_minimal() 
   })
   
   output$rr_lag <- renderPlot({
