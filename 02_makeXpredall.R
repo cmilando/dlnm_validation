@@ -1,6 +1,6 @@
 # ok now make Xpred
 
-xpred_base = tidyr::expand_grid(x= x, l = l)
+xpred_base = tidyr::expand_grid(x = x, l = l)
 xpred_base = xpred_base[, c("x", "l")]
 setDT(xpred_base)
 
