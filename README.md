@@ -8,3 +8,5 @@ so that we can get coefficients that we know are true (beta_true)
  (1) get the confidence intervals
  (2) then assess how well / what the
  1stage, 2stage, SB and INLA are doing 
+
+Cloud link [here](https://connect.posit.cloud/cmilando/content/01a00ddb-6d44-366e-d601-e41d1643ec8e)

@@ -618,7 +618,7 @@ ui <- fluidPage(
             class = "plot-container",
             
             h4(
-              "Exposure–Response",
+              "Cumulative Exposure–Response",
               style = "margin-top: 0; margin-bottom: 10px;"
             ),
             
@@ -1267,15 +1267,32 @@ server <- function(input, output, session) {
     )
     
     df$lag <- as.numeric(
-      as.character(df$lag)
+      gsub("lag", "", as.character(df$lag))
     )
+    
+    df$temperature <- as.numeric(df$temperature)
+    
+    setDT(df)
+    
+    df[, temp_5 := round(temperature / 5) * 5]
+    
+    df <- df[
+      , .SD[
+        which.min(abs(temperature - temp_5[1]))
+      ],
+      by = .(temp_5, lag)
+    ]
+    
+    df[, temperature := temp_5]
+    df[, temp_5 := NULL]
     
     ggplot(
       df,
       aes(
         x = lag,
         y = RR,
-        group = temperature
+        group = temperature,
+        color = temperature
       )
     ) +
       geom_line(
