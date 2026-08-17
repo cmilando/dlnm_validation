@@ -80,7 +80,7 @@ ui <- fluidPage(
             numericInput(
               "sd",
               "Random variation (SD)",
-              value = 0.01,
+              value = 0.03,
               min = 0,
               step = 0.01,
               width = "100%"
@@ -109,7 +109,7 @@ ui <- fluidPage(
               "Annual growth",
               value = 0.02,
               min = -1,
-              max = 10,
+              max = 1,
               step = 0.01,
               width = "100%"
             ),
@@ -545,8 +545,13 @@ ui <- fluidPage(
         "True RR Surface"
       ),
       
+      h4(
+        "True Cumulative RR",
+        style = "margin-top: 0; margin-bottom: 10px;"
+      ),
+      
       plotOutput("trueRRCumulative",               
-                 width = "100%",
+                 width = "50%",
                  height = "300px")
     ),
     
@@ -802,7 +807,7 @@ server <- function(input, output, session) {
     ylab = 'RR',
     xmin = 0,
     xmax = 100,
-    dx = 1,
+    dx = 5,
     ymin = 0.9,
     ymax = 1.1
   )
@@ -815,7 +820,7 @@ server <- function(input, output, session) {
     ylab = 'RR',
     xmin = 0,
     xmax = 100,
-    dx = 1,
+    dx = 5,
     ymin = 0.9,
     ymax = 1.1
   )
@@ -828,7 +833,7 @@ server <- function(input, output, session) {
     ylab = 'RR',
     xmin = 0,
     xmax = 5,
-    dx = 0.5,
+    dx = 1,
     ymin = 0.5,
     ymax = 1.1
   )
@@ -956,40 +961,47 @@ server <- function(input, output, session) {
       ## i dont think you can get cumse becase you 
       ## don't know the outcomes yet,
       ## and maybe thats ok for the DGM
+      ## *** is this a function of how many x points you have ??
+      ### ***** ???
       Xpredall <- 0
       cumfit <- matrix(0, length(x), length(l))
-      currMin = Inf
-      xatCurrMin = NA
+      # currMin = Inf
+      # xatCurrMin = NA
       
       for (i in seq(length(l))) {
         ind <- seq(length(x)) + length(x) * (i - 1)
         Xpredall <- Xpredall + Xpred[ind, , drop = FALSE]
         cumfit[, i] <- Xpredall %*% beta
-        localMin = cumfit[which.min(cumfit[, i]), i]
-        if(localMin < currMin) {
-          currMin = localMin
-          xatCurrMin = x[which.min(cumfit[, i])]
-        }
+        # localMin = cumfit[which.min(cumfit[, i]), i]
+        # if(localMin < currMin) {
+        #   currMin = localMin
+        #   xatCurrMin = x[which.min(cumfit[, i])]
+        # }
       }
+      
+      cout <- exp(cumfit)
+      names(cout) <- c('temp', paste0("lag", l))
+      row.names(cout) <- x
+      write.csv(cout, "cumfit_manual.csv", quote = F)
       
       # and then recenter
-      Xpred <- dlnm:::mkXpred(
-        "cb",
-        cp_basis,
-        at = x,
-        predvar = x,
-        predlag = l,
-        cen = xatCurrMin
-      )
-      
-      Xpredall <- 0
-      cumfit <- matrix(0, length(x), length(l))
-      
-      for (i in seq(length(l))) {
-        ind <- seq(length(x)) + length(x) * (i - 1)
-        Xpredall <- Xpredall + Xpred[ind, , drop = FALSE]
-        cumfit[, i] <- Xpredall %*% beta
-      }
+      # Xpred <- dlnm:::mkXpred(
+      #   "cb",
+      #   cp_basis,
+      #   at = x,
+      #   predvar = x,
+      #   predlag = l,
+      #   cen = xatCurrMin
+      # )
+      # 
+      # Xpredall <- 0
+      # cumfit <- matrix(0, length(x), length(l))
+      # 
+      # for (i in seq(length(l))) {
+      #   ind <- seq(length(x)) + length(x) * (i - 1)
+      #   Xpredall <- Xpredall + Xpred[ind, , drop = FALSE]
+      #   cumfit[, i] <- Xpredall %*% beta
+      # }
       
       # ---------------------------------------------------
       # Rebuild RR surface
@@ -1057,8 +1069,18 @@ server <- function(input, output, session) {
   
   output$trueRRCumulative <- renderPlot({
     nc = ncol(true_rr()$cumfit)
-    plot(x = plot1$grid()$x,
-         y = exp(true_rr()$cumfit[, nc]))
+    df = data.table(
+      x = plot1$grid()$x,
+      y = exp(true_rr()$cumfit[, nc])
+    )
+    ggplot(df, aes(x = x, y =y)) +
+      geom_hline(yintercept = 1, 
+                 linetype = 'dashed') +
+      geom_line() + #geom_point() + 
+      annotate(geom = 'point', y = 1, x = input$cen,
+               color= 'red', shape = 15, size = 5) +
+      xlab("Temperature") + 
+      ylab("RR") + theme_minimal()
   })
   
   ## ====================================================
@@ -1129,19 +1151,17 @@ server <- function(input, output, session) {
     
     for (i in seq_len(nrow(df))) {
       
+      # generating the simuluated data
       deaths_expected_value[i] <-
-        df$death[i] *
-        exp(
-          sum(
-            newbasis[i, ] * true_rr()$beta
-          ) +
-            error[i]
-        )
+        df$death[i] * exp(sum(newbasis[i, ] * true_rr()$beta)  + error[i])
       
-      death_updated[i] <- rpois(
-        n = 1,
-        lambda = deaths_expected_value[i]
-      )
+      # death_updated[i] <- rpois(
+      #   n = 1,
+      #   lambda = deaths_expected_value[i]
+      # )
+      
+      death_updated[i] <- deaths_expected_value[i]
+
     }
     
     df$death_updated <- death_updated
@@ -1165,8 +1185,9 @@ server <- function(input, output, session) {
       newbasis,
       m_sub,
       cen = min(df$tmaxF),
-      by = 0.1,
-      bylag = 0.25
+      by = 1,
+      bylag = 1,
+      cumul = TRUE
     )
     
     xcen <- cp$predvar[
@@ -1177,8 +1198,9 @@ server <- function(input, output, session) {
       newbasis,
       m_sub,
       cen = xcen,
-      by = 0.1,
-      bylag = 0.25
+      by = 1,
+      bylag = 1,
+      cumul = TRUE
     )
     
     # -----------------------------------------------------
@@ -1203,6 +1225,7 @@ server <- function(input, output, session) {
       basis = newbasis,
       model = m_sub,
       crosspred = cp,
+      xcen = xcen,
       beta = true_rr()$beta,
       beta_estimated = coef(m_sub)
     )
@@ -1337,6 +1360,8 @@ server <- function(input, output, session) {
     
     cp <- model_results()$crosspred
     
+    write.csv(exp(cp$cumfit), "cumfit_auto.csv")
+
     df <- data.frame(
       x = cp$predvar,
       RR = cp$allRRfit,
@@ -1344,7 +1369,16 @@ server <- function(input, output, session) {
       high = cp$allRRhigh
     )
     
+    nc = ncol(true_rr()$cumfit)
+    df_true = data.table(
+      x = plot1$grid()$x,
+      y = exp(true_rr()$cumfit[, nc])
+    )
+
     ggplot(df, aes(x = x, y = RR)) +
+      geom_line(data = df_true,
+                aes(x = x, y = y), 
+                col = 'blue') +
       geom_ribbon(
         aes(
           ymin = low,
@@ -1357,6 +1391,10 @@ server <- function(input, output, session) {
         yintercept = 1,
         linetype = "dashed"
       ) +
+      annotate(geom = 'text',
+               x = cp$predvar[1],
+               y = max(cp$allRRhigh),
+               label = paste0("Cen = ", cp$cen)) +
       labs(
         x = "Temperature",
         y = "Relative Risk"
