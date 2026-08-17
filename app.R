@@ -41,10 +41,10 @@ ui <- fluidPage(
   "))
   ),
   
-  # theme = bs_theme(
-  #   version = 5,
-  #   bootswatch = "flatly"
-  # ),
+  theme = bs_theme(
+    version = 5,
+    bootswatch = "flatly"
+  ),
   
   div(
     style = "max-width: 900px; margin: auto;",
