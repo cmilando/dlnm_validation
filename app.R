@@ -343,7 +343,22 @@ ui <- fluidPage(
           )
         )
         
+      ),
+      
+      fluidRow(
+        column(
+          width = 12,
+          div(
+            class = "plot-container",
+            h4(
+              "Temerature data summary",
+              style = "margin-top: 0; margin-bottom: 10px;"
+            ),
+            verbatimTextOutput("temp_summary")
+          )
+        )
       )
+      
     ),
     
     # -----------------------------------------------------
@@ -562,6 +577,8 @@ ui <- fluidPage(
     
     tabPanel(
       "Model Results",
+      
+      helpText("The baseline case counts are modified according to the specified relative-risk surface to create an updated set of cases. A small amount of random variation is added to the simulated values. These updated cases are then analyzed using a quasi-Poisson regression model to estimate the temperature–risk relationship and assess how closely the fitted model recovers the specified relative-risk surface."),
       
       fluidRow(
         
@@ -1353,6 +1370,13 @@ server <- function(input, output, session) {
     
     summary(
       model_results()$model
+    )
+  })
+  
+  output$temp_summary <- renderPrint({
+    
+    summary(
+      temp_data()
     )
   })
   
