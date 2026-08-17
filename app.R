@@ -391,11 +391,134 @@ ui <- fluidPage(
         
       ),
       
+      ##
       combinedRRPlotUI(
         "combined1",
         "RR Surface - ORIG"
       )
       
+      ##
+      
+    ),
+    
+    tabPanel(
+      "True RR Surface",
+      
+      fluidRow(
+        
+        # -----------------------------------------------------
+        # ARGVAR
+        # -----------------------------------------------------
+        
+        column(
+          width = 6,
+          
+          div(
+            class = "plot-container",
+            
+            h4(
+              "Exposure Basis (ARGVAR)",
+              style = "margin-top: 0; margin-bottom: 10px;"
+            ),
+            
+            textAreaInput(
+              "argvar_text",
+              "ARGVAR",
+              value = "list(fun = 'ns', knots = c(50, 70))",
+              rows = 3,
+              width = "100%"
+            ),
+            
+            helpText(
+              "Example: list(fun = 'ns', knots = c(50, 70))"
+            )
+          )
+        ),
+        
+        
+        # -----------------------------------------------------
+        # ARGLAG
+        # -----------------------------------------------------
+        
+        column(
+          width = 6,
+          
+          div(
+            class = "plot-container",
+            
+            h4(
+              "Lag Basis (ARGLAG)",
+              style = "margin-top: 0; margin-bottom: 10px;"
+            ),
+            
+            textAreaInput(
+              "arglag_text",
+              "ARGLAG",
+              value = "list(fun = 'ns', knots = 2)",
+              rows = 3,
+              width = "100%"
+            ),
+            
+            helpText(
+              "Example: list(fun = 'ns', knots = 2)"
+            )
+          )
+        )
+        
+      ),
+      
+      
+      # -------------------------------------------------------
+      # Other settings
+      # -------------------------------------------------------
+      
+      fluidRow(
+        
+        column(
+          width = 3,
+          
+          div(
+            class = "plot-container",
+            
+            numericInput(
+              "maxlag",
+              "Maximum lag",
+              value = 5,
+              min = 0,
+              max = 5,
+              step = 1,
+              width = "100%"
+            )
+          )
+        ),
+        
+        column(
+          width = 3,
+          
+          div(
+            class = "plot-container",
+            
+            numericInput(
+              "cen",
+              "Centering temperature",
+              value = 50,
+              step = 0.1,
+              width = "100%"
+            )
+          )
+        )
+        
+      ),
+      
+      
+      # -------------------------------------------------------
+      # Results
+      # -------------------------------------------------------
+      
+      combinedRRPlotUI(
+        "true_rr_surface",
+        "True RR Surface"
+      )
     ),
     
     
@@ -413,6 +536,9 @@ ui <- fluidPage(
     
   )
 )
+
+
+
 server <- function(input, output, session) {
   
   ## *******************************
@@ -513,26 +639,26 @@ server <- function(input, output, session) {
   ## *******************************
   plot1 <- rtPlotServer(
     "plot1",
-    x_init = c(1, 10, 20, 30),
-    y_init = c(1, 1 ,1, 1.09),
+    x_init = c(0, 30, 60, 100),
+    y_init = c(1, 1 ,1, 1.04),
     xlab = 'Temperature',
     ylab = 'RR',
-    xmin = 1,
-    xmax = 30,
-    dx = 0.5,
+    xmin = 0,
+    xmax = 100,
+    dx = 1,
     ymin = 0.9,
     ymax = 1.1
   )
   
   plot2 <- rtPlotServer(
     "plot2",
-    x_init = c(1, 10, 20, 30),
-    y_init = c(1, 1, 1, 1.02),
+    x_init = c(0, 30, 60, 100),
+    y_init = c(1, 1, 1, 1.01),
     xlab = 'Temperature',
     ylab = 'RR',
-    xmin = 1,
-    xmax = 30,
-    dx = 0.5,
+    xmin = 0,
+    xmax = 100,
+    dx = 1,
     ymin = 0.9,
     ymax = 1.1
   )
@@ -567,6 +693,7 @@ server <- function(input, output, session) {
     
     RR_mat <- do.call(cbind, lapply(1:nx, RR))
     
+    print(dim(RR_mat))
     RR_mat
     
   })
@@ -575,6 +702,161 @@ server <- function(input, output, session) {
   combinedRRPlotServer(
     "combined1",
     RRmat_reactive = RRmat_orig,
+    x = reactive(plot1$grid()$x),
+    l = reactive(plot3$grid()$x)
+  )
+  
+  ####
+  argvar <- reactive({
+    
+    parse_list_input(
+      input$argvar_text
+    )
+  })
+  
+  ####
+  arglag <- reactive({
+    
+    parse_list_input(
+      input$arglag_text
+    )
+  })
+  
+  ###
+  true_rr <- reactive({
+      
+      # ---------------------------------------------------
+      # Get x and lag dimensions
+      # ---------------------------------------------------
+      
+      x <- plot1$grid()$x
+      l <- plot3$grid()$x
+      
+      maxlag <- input$maxlag
+      
+      
+      # ---------------------------------------------------
+      # Create prediction grid
+      # ---------------------------------------------------
+      
+      xpred_base <- tidyr::expand_grid(
+        x = x,
+        l = l
+      )
+      
+      xpred_base <- xpred_base[, c("x", "l")]
+      
+      setDT(xpred_base)
+      
+      setorderv(
+        xpred_base,
+        "x"
+      )
+      
+      
+      # ---------------------------------------------------
+      # Create crossbasis
+      # ---------------------------------------------------
+      
+      cp_basis <- dlnm::crossbasis(
+        x = xpred_base$x,
+        argvar = argvar(),
+        arglag = arglag(),
+        lag = maxlag
+      )
+      
+      
+      # ---------------------------------------------------
+      # Create Xpred
+      # ---------------------------------------------------
+      
+      Xpred <- dlnm:::mkXpred(
+        "cb",
+        cp_basis,
+        at = x,
+        predvar = x,
+        predlag = l,
+        cen = input$cen
+      )
+      
+      
+      # ---------------------------------------------------
+      # Flatten observed RR surface
+      # ---------------------------------------------------
+      
+      RR <- RRmat_orig()
+      
+      tRR_mat <- t(RR)
+      
+      tRR_mat_flat <- matrix(tRR_mat, ncol = 1)
+      
+      
+      # ---------------------------------------------------
+      # Estimate beta
+      # ---------------------------------------------------
+      
+      beta <- MASS::ginv(Xpred) %*% log(tRR_mat_flat)
+      
+      
+      # ---------------------------------------------------
+      # Rebuild RR surface
+      # ---------------------------------------------------
+      
+      rebuild_log_RRmat <- matrix(
+        Xpred %*% beta,
+        nrow = length(x)
+      )
+      
+      rebuild_RRmat <- exp(
+        rebuild_log_RRmat
+      )
+      
+      
+      # ---------------------------------------------------
+      # Convert to long format
+      # ---------------------------------------------------
+      
+      rebuild_RRmat <- as.data.table(
+        rebuild_RRmat
+      )
+      rebuild_RRmat_out <- rebuild_RRmat
+      
+      names(rebuild_RRmat) <- as.character(l)
+      
+      rebuild_RRmat$x <- x
+      
+      rebuild_RRmat <- melt(
+        rebuild_RRmat,
+        id.vars = "x"
+      )
+      
+      names(rebuild_RRmat)[2:3] <- c(
+        "l",
+        "RR"
+      )
+      
+      rebuild_RRmat$l <- type.convert(
+        rebuild_RRmat$l,
+        as.is = TRUE
+      )
+      
+      
+      list(
+        beta = beta,
+        data = rebuild_RRmat,
+        Xpred = Xpred,
+        RRmat = rebuild_RRmat_out
+      )
+    }
+  )
+  
+  RRmat_true <- reactive({ 
+    t(true_rr()$RRmat)
+  })
+  
+  combinedRRPlotServer(
+    "true_rr_surface",
+    RRmat_reactive = RRmat_true,
     x = reactive(plot1$grid()$x),
     l = reactive(plot3$grid()$x)
   )

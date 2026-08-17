@@ -543,3 +543,21 @@ get_baseline_cases <- function(
   return(df)
   
 }
+
+
+parse_list_input <- function(x) {
+  
+  expr <- parse(text = x)
+  
+  if (length(expr) != 1) {
+    stop("Input must contain exactly one R expression.")
+  }
+  
+  out <- eval(expr[[1]], envir = baseenv())
+  
+  if (!is.list(out)) {
+    stop("Input must evaluate to a list().")
+  }
+  
+  out
+}
