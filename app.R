@@ -694,13 +694,13 @@ ui <- fluidPage(
         # -----------------------------------------------------
       fluidRow(
         column(
-          width = 3,
+          width = 4,
           
           div(
             class = "plot-container",
             
             textAreaInput(
-              "argvar_text",
+              "true_argvar_text",
               "Exposure basis (ARGVAR)",
               value = "list(fun = 'ns', knots = c(50, 70))",
               rows = 3,
@@ -719,13 +719,13 @@ ui <- fluidPage(
         # -----------------------------------------------------
         
         column(
-          width = 3,
+          width = 4,
           
           div(
             class = "plot-container",
             
             textAreaInput(
-              "arglag_text",
+              "true_arglag_text",
               "Lag Basis (ARGLAG)",
               value = "list(fun = 'ns', knots = 2)",
               rows = 3,
@@ -739,14 +739,14 @@ ui <- fluidPage(
         ),
         
         column(
-          width = 3,
+          width = 2,
           
           div(
             class = "plot-container",
             
             numericInput(
-              "maxlag",
-              "Maximum lag",
+              "true_maxlag",
+              "Max. lag",
               value = 5,
               min = 0,
               max = 5,
@@ -759,14 +759,14 @@ ui <- fluidPage(
         ),
         
         column(
-          width = 3,
+          width = 2,
           
           div(
             class = "plot-container",
             
             numericInput(
-              "cen",
-              "Centering temperature",
+              "true_cen",
+              "Centering T.",
               value = 45,
               step = 1,
               width = "100%"
@@ -777,9 +777,6 @@ ui <- fluidPage(
         )
         
       ),
-      
-      
-
       
       # -------------------------------------------------------
       # Results
@@ -863,42 +860,91 @@ ui <- fluidPage(
       fluidRow(
         
         column(
-          width = 2,
-          numericInput("case_year",
-                       "Case Year",
-                       value = 1980,
-                       min = 1981, max = 1999, step = 1)
+          width = 4,
+          
+          div(
+            class = "plot-container",
+            
+            textAreaInput(
+              "model_argvar_text",
+              "Exposure basis (ARGVAR)",
+              value = "list(fun = 'ns', knots = c(50, 70))",
+              rows = 3,
+              width = "100%"
+            ),
+            
+            helpText(
+              "Example: list(fun = 'ns', knots = c(50, 70))"
+            )
+          )
         ),
         
+        
+        # -----------------------------------------------------
+        # ARGLAG
+        # -----------------------------------------------------
+        
         column(
-          width = 2,
-          conditionalPanel(
-            "input.baseline > 0",
+          width = 4,
+          
+          div(
+            class = "plot-container",
             
-            numericInput(
-              "case_ymin",
-              "Ymin",
-              value = 0,
+            textAreaInput(
+              "model_arglag_text",
+              "Lag Basis (ARGLAG)",
+              value = "list(fun = 'ns', knots = 2)",
+              rows = 3,
               width = "100%"
+            ),
+            
+            helpText(
+              "Example: list(fun = 'ns', knots = 2)"
             )
           )
         ),
         
         column(
           width = 2,
-          conditionalPanel(
-            "input.baseline > 0",
+          
+          div(
+            class = "plot-container",
             
             numericInput(
-              "case_ymax",
-              "Ymax",
-              value = 0,
+              "model_maxlag",
+              "Maximum lag",
+              value = 5,
+              min = 0,
+              max = 5,
+              step = 1,
               width = "100%"
             )
+            
+            
+          )
+        ),
+        
+        column(
+          width = 2,
+          
+          div(
+            class = "plot-container",
+            
+            numericInput(
+              "model_cen",
+              "Centering T.",
+              value = 45,
+              step = 1,
+              width = "100%"
+            )
+            
+            
           )
         )
         
       ),
+      
+      tags$hr(),
       
       # =====================================================
       # Case data
@@ -913,10 +959,70 @@ ui <- fluidPage(
             class = "plot-container",
             
             h4(
-              "Updated Case Data",
+              "Model results",
               style = "margin-top: 0; margin-bottom: 10px;"
+            )
+          )
+        )
+      ), 
+        
+    
+      ####
+      
+  
+      
+      ####
+      
+            
+            
+      fluidRow(
+        
+        column(
+          width = 6,
+          
+          fluidRow(
+            
+            column(
+              width = 4,
+              numericInput("case_year",
+                           "Case Year",
+                           value = 1980,
+                           min = 1981, max = 1999, step = 1)
             ),
             
+            column(
+              width = 4,
+              conditionalPanel(
+                "input.baseline > 0",
+                
+                numericInput(
+                  "case_ymin",
+                  "Ymin",
+                  value = 0,
+                  width = "100%"
+                )
+              )
+            ),
+            
+            column(
+              width = 4,
+              conditionalPanel(
+                "input.baseline > 0",
+                
+                numericInput(
+                  "case_ymax",
+                  "Ymax",
+                  value = 0,
+                  width = "100%"
+                )
+              )
+            )
+            
+          ),
+          
+          
+          div(
+            class = "plot-container",
             plotOutput(
               "case_timeseries",
               width = "100%",
@@ -929,6 +1035,19 @@ ui <- fluidPage(
               height = "250px"
             )
           )
+        ),
+        column(
+          width = 6,
+          
+          div(
+            class = "plot-container",
+            
+            plotOutput(
+              "case_scatter",
+              width = "100%",
+              height = "600px"
+            )
+          )
         )
         
       ),
@@ -939,6 +1058,8 @@ ui <- fluidPage(
       # =====================================================
       
       fluidRow(
+        
+        
         
         column(
           width = 6,
@@ -1095,7 +1216,8 @@ server <- function(input, output, session) {
   
   shinyjs::disable("temp_min")
   shinyjs::disable("temp_max")
-  shinyjs::disable("maxlag")
+  shinyjs::disable("true_maxlag")
+  #shinyjs::disable("model_maxlag")
   
   observeEvent(input$use_station_data, {
     
@@ -1310,18 +1432,32 @@ server <- function(input, output, session) {
   )
   
   ####
-  argvar <- reactive({
+  true_argvar <- reactive({
     
     parse_list_input(
-      input$argvar_text
+      input$true_argvar_text
+    )
+  })
+  
+  model_argvar <- reactive({
+    
+    parse_list_input(
+      input$model_argvar_text
     )
   })
   
   ####
-  arglag <- reactive({
+  true_arglag <- reactive({
     
     parse_list_input(
-      input$arglag_text
+      input$true_arglag_text
+    )
+  })
+  
+  model_arglag <- reactive({
+    
+    parse_list_input(
+      input$model_arglag_text
     )
   })
   
@@ -1335,7 +1471,7 @@ server <- function(input, output, session) {
       x <- plot1$grid()$x
       l <- plot3$grid()$x
       
-      maxlag <- input$maxlag
+      maxlag <- input$true_maxlag
       
       # ---------------------------------------------------
       # Create prediction grid
@@ -1361,8 +1497,8 @@ server <- function(input, output, session) {
       
       cp_basis <- dlnm::crossbasis(
         x = xpred_base$x,
-        argvar = argvar(),
-        arglag = arglag(),
+        argvar = true_argvar(),
+        arglag = true_arglag(),
         lag = maxlag
       )
       
@@ -1377,9 +1513,9 @@ server <- function(input, output, session) {
         at = x,
         predvar = x,
         predlag = l,
-        cen = input$cen
+        cen = input$true_cen
       )
-    
+          
       # ---------------------------------------------------
       # Flatten observed RR surface
       # ---------------------------------------------------
@@ -1487,7 +1623,7 @@ server <- function(input, output, session) {
       geom_hline(yintercept = 1, 
                  linetype = 'dashed') +
       geom_line() + #geom_point() + 
-      annotate(geom = 'point', y = 1, x = input$cen,
+      annotate(geom = 'point', y = 1, x = input$true_cen,
                color= 'red', shape = 15, size = 5) +
       annotate(geom = 'text',
                x = df$x[1],
@@ -1508,85 +1644,73 @@ server <- function(input, output, session) {
     df_temp  <- temp_data()
 
     df <- df_cases[
-      df_temp, on = c('date', 'city', 'year')
+      df_temp, on = c('date', 'city', 'year', 'idx')
     ]
-    
-    # -----------------------------------------------------
-    # Original crossbasis
-    # -----------------------------------------------------
-    
-    origbasis <- dlnm::crossbasis(
-      df$tmaxF,
-      argvar = argvar(),
-      arglag = arglag(),
-      lag = input$maxlag
-    )
-    
-    # # -----------------------------------------------------
-    # # Recenter basis
-    # # -----------------------------------------------------
-    # 
-    # basiscen <- onebasis(
-    #   x = mean(df$tmaxF)
-    #   argvar = argvar(),
-    # )
-    # 
-    # newbasis <- scale(
-    #   origbasis,
-    #   center = basiscen,
-    #   scale = FALSE
-    # )
-    
+
     # -----------------------------------------------------
     # Generate updated deaths
     # -----------------------------------------------------
     
     set.seed(input$seed)
     
+    ## you want all deaths predicted you need to add addtional data
+    add_extra_T <- 1:input$true_maxlag
+ 
+    true_basis <- dlnm::crossbasis(
+      c(df$tmaxF[add_extra_T], df$tmaxF), 
+      argvar = true_argvar(),
+      arglag = true_arglag(),
+      lag = input$true_maxlag
+    )
+
+    # then reset it
+    true_basis <- data.frame(true_basis[(input$true_maxlag + 1):nrow(true_basis), ])
+
     error <- rnorm(
       nrow(df),
       sd = input$model_error_sd
     )
     
-    deaths_expected_value <- numeric(
-      nrow(df)
-    )
-    
-    death_updated <- numeric(
-      nrow(df)
-    )
+    deaths_expected_value <- numeric(nrow(df))
+    death_updated <- numeric(nrow(df))
 
-    for (i in seq_len(nrow(df))) {
-      
-      if(any(is.na(origbasis[i, ]))) next
+    for (i in 1:nrow(df)) {
       
       # generating the expcted value
       deaths_expected_value[i] <-
-        df$death[i] * exp(sum(origbasis[i, ] * true_rr()$beta)  + error[i])
+        df$death[i] * exp(sum(true_basis[i, ] * true_rr()$beta)  + error[i])
       
-      # and then taking a draw from a poisson distribution
-      # using that value --> should you add additional variance
-
-      if(input$pois_draw == TRUE) {
-        death_updated[i] <- rpois(
-          n = 1,
-          lambda = deaths_expected_value[i]
-        )
-      } else {
-        death_updated[i] <- deaths_expected_value[i]
-      }
-      
+    }
+    
+    # and then taking a draw from a poisson distribution
+    # using that value --> should you add additional variance
+    
+    if(input$pois_draw == TRUE) {
+      death_updated <- rpois(
+        n = length(deaths_expected_value),
+        lambda = deaths_expected_value
+      )
+    } else {
+      death_updated <- deaths_expected_value
     }
     
     df$death_updated <- round(death_updated)
     df$death_expected_value <- deaths_expected_value
-
+  
     # -----------------------------------------------------
     # Regression model
     # -----------------------------------------------------
     
+    # now update the crossbasis to be the one from the model block
+    cb_model <- dlnm::crossbasis(
+      df$tmaxF,
+      argvar = model_argvar(),
+      arglag = model_arglag(),
+      lag = input$model_maxlag
+    )
+    
     m_sub <- gnm::gnm(
-      death_updated ~ origbasis,
+      death_updated ~ cb_model,
       data = df,
       family = quasipoisson,
       eliminate = factor(strata)
@@ -1597,7 +1721,7 @@ server <- function(input, output, session) {
     # -----------------------------------------------------
     
     cp <- dlnm::crosspred(
-      origbasis,
+      cb_model,
       m_sub,
       cen = min(df$tmaxF),
       by = 1,     ## this can in theory be < 1
@@ -1610,9 +1734,9 @@ server <- function(input, output, session) {
     ]
     
     cp <- dlnm::crosspred(
-      origbasis,
+      cb_model,
       m_sub,
-      cen = xcen,
+      cen = input$model_cen,
       by = 1,     ## this can in theory be < 1
       bylag = 1,  ## this can in theory be < 1
       cumul = TRUE
@@ -1627,9 +1751,16 @@ server <- function(input, output, session) {
     )
     
     df$death_pred <- c(
-      rep(NA, input$maxlag),
+      rep(NA, input$model_maxlag),
       death_pred
     )
+    
+    df <- subset(df, !is.na(death_pred))
+    
+    if(any(df$death_updated == 0)) {
+      rr <- which(df$death_updated == 0)
+      print(df[rr, ])
+    }
     
     # -----------------------------------------------------
     # Return everything
@@ -1637,7 +1768,7 @@ server <- function(input, output, session) {
     
     list(
       data = df,
-      basis = origbasis,
+      basis = cb_model,
       model = m_sub,
       crosspred = cp,
       xcen = xcen,
@@ -1699,6 +1830,40 @@ server <- function(input, output, session) {
       ) +
       theme_minimal() + 
       coord_cartesian(ylim = c(input$case_ymin, input$case_ymax))
+  })
+  
+  output$case_scatter <- renderPlot({
+    
+    res <- model_results()
+    
+    df <- res$data
+    
+    ggplot(
+      subset(df, year(date) == input$case_year)
+    ) +
+      geom_point(
+        aes(
+          x = death_updated,
+          y = death_pred,
+          color = factor(month(date), ordered = T,
+                         levels = 1:12)
+        )
+      ) +
+      scale_color_manual(name = 'Month', values = c(
+        '1' = 'blue', '2' = 'blue', '11' = 'blue', '12' = 'blue',
+        '3' = 'green', '4' = 'green', 
+        '5' = 'red', '6' = 'red', '7' = 'red', '8' = 'red', '9' = 'red',
+        '10' = 'purple'
+      )) +
+      geom_abline(slope = 1, intercept = 0) +
+      labs(
+        x = "Observed Deaths",
+        y = "Predicted Deaths",
+        title = "Updated vs predicted deaths"
+      ) +
+      theme_minimal() +
+      coord_cartesian(ylim = c(input$case_ymin, input$case_ymax),
+                      xlim = c(input$case_ymin, input$case_ymax))
   })
   
   output$temp_timeseries <- renderPlot({
@@ -1855,6 +2020,7 @@ server <- function(input, output, session) {
   output$rr_overall <- renderPlot({
     
     cp <- model_results()$crosspred
+    xcen <- model_results()$xcen
     
     df <- data.frame(
       x = cp$predvar,
@@ -1888,7 +2054,7 @@ server <- function(input, output, session) {
       annotate(geom = 'text',
                x = cp$predvar[1],
                y = max(cp$allRRhigh),
-               label = paste0("Cen = ", cp$cen)) +
+               label = paste0("True Cen = ", xcen)) +
       labs(
         x = "Temperature",
         y = "Relative Risk"
