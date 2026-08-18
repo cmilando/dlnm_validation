@@ -17,19 +17,19 @@ local_rescale <- function(xvec, scalefirst, scalelast) {
 # Reusable plot module UI
 # ---------------------------------------------------------
 
-rtPlotUI <- function(id, title = NULL, helpText = NULL) {
-  
+rtPlotUI <- function(id, title,  helpText, islag = FALSE) {
+
   ns <- NS(id)
   
-  tagList(
+  tl <- tagList(
     
-    if (!is.null(title)) {
-      h4(title)
-    },
+    h4(title),
     
-    if (!is.null(helpText)) {
-      helpText(helpText)
-    },
+    plotlyOutput(
+      ns("plot"),
+      width = "100%",
+      height = "260px"
+    ),
     
     sliderInput(
       ns("BSDEG"),
@@ -41,12 +41,39 @@ rtPlotUI <- function(id, title = NULL, helpText = NULL) {
       width = "90%"
     ),
     
+    helpText(helpText)
+    
+  )
+  
+  tl2 <- tagList(
+    
+    h4(title),
+    
     plotlyOutput(
       ns("plot"),
       width = "100%",
       height = "260px"
-    )
+    ),
+    
+    sliderInput(
+      ns("local_maxlag"),
+      "maxlag:",
+      value = 5,
+      min = 1,
+      max = 30,
+      step = 1,
+      width = "90%"
+    ),
+    
+    helpText(helpText)
+    
   )
+  
+  if(islag) {
+    return(tl2)
+  } else {
+    return(tl)
+  }
 }
 
 
@@ -65,12 +92,17 @@ rtPlotServer <- function(
     dx,
     ymin,
     ymax,
-    col
+    col,
+    islag = FALSE
 ) {
   
   moduleServer(
     id,
     function(input, output, session) {
+      
+      if(islag) {
+        shinyjs::disable(id = "local_maxlag")
+      }
       
       # ---------------------------------------------------
       # Module-specific state
@@ -106,7 +138,9 @@ rtPlotServer <- function(
         )
         
         # B-spline basis
-        X_mat <- bs(x = this.x, knots = rv$x, degree = input$BSDEG)
+        # defaults to 1 if its the lag dimension
+        X_mat <- bs(x = this.x, knots = rv$x, 
+                    degree = ifelse(islag, 1, input$BSDEG))
         
         # Fit spline to linear interpolation
         m2 <- lm(this.y ~ X_mat)
@@ -175,7 +209,7 @@ rtPlotServer <- function(
             y = c(1, 1),
             color = I("black"),
             line = list(
-              width = 0.5,
+              width = ifelse(islag, 0, 0.5),
               dash = "dot"
             ),
             showlegend = FALSE
@@ -261,7 +295,7 @@ rtPlotServer <- function(
         )
         
         req(ed)
-        
+
         shape_anchors <- ed[
           grepl(
             "^shapes.*anchor$",
@@ -342,7 +376,12 @@ rtPlotServer <- function(
 
 
 
-combinedRRPlotUI <- function(id, title = "Combined RR") {
+combinedRRPlotUI <- function(id, title = "Combined RR", 
+                             w1 = 2, w2 = 6, w3 = 4,
+                             pOther = NULL,
+                             hOther = NULL) {
+  
+  
   
   ns <- NS(id)
   
@@ -360,7 +399,7 @@ combinedRRPlotUI <- function(id, title = "Combined RR") {
       # -----------------------------------------------
       
       column(
-        width = 3,
+        width = w1,
         
         div(
           class = "plot-container",
@@ -402,7 +441,7 @@ combinedRRPlotUI <- function(id, title = "Combined RR") {
       # -----------------------------------------------
       
       column(
-        width = 9,
+        width = w2,
         
         div(
           class = "plot-container",
@@ -413,7 +452,19 @@ combinedRRPlotUI <- function(id, title = "Combined RR") {
             height = "350px"
           )
         )
+      ),
+      
+      column(
+        width = w3,
+        
+        div(
+          class = "plot-container",
+          
+          pOther,
+          hOther
+        )
       )
+      
     )
   )
 }

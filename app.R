@@ -209,7 +209,7 @@ ui <- fluidPage(
               min = 0,
               step = 10,
               width = "100%"
-            ),
+            )
             
           )
         ),
@@ -263,7 +263,7 @@ ui <- fluidPage(
               max = 1,
               step = 0.01,
               width = "100%"
-            ),
+            )
             
           )
         ),
@@ -460,7 +460,7 @@ ui <- fluidPage(
           
           div(
             class = "plot-container",
-            
+  
             h4(
               "Simulation Parameters",
               style = "margin-top: 0; margin-bottom: 15px;"
@@ -555,6 +555,8 @@ ui <- fluidPage(
           div(
             class = "plot-container",
             
+            shiny::hr(),
+            
             h4(
               "Temperature Preview",
               style = "margin-top: 0; margin-bottom: 10px;"
@@ -600,6 +602,8 @@ ui <- fluidPage(
                there are likely some edge cases that will break how this 
                works."),
       
+      shiny::hr(),
+      
       fluidRow(
         
         column(
@@ -637,16 +641,19 @@ ui <- fluidPage(
                      how the surface behaves going along the lag dimension
                      and is rescaled for every starting and ending
                      point between RR at lag0 and lagMax for each 
-                     exposure value.")
+                     exposure value.", islag = T)
           )
         )
         
       ),
       
+      shiny::hr(),
+      
       ##
       combinedRRPlotUI(
         "combined1",
-        "RR Surface - ORIG"
+        "RR Surface",
+        w2 = 8, w3 = 2
       )
       
       ##
@@ -671,24 +678,30 @@ ui <- fluidPage(
       
       fluidRow(
         
+        column(
+          width = 12,
+          
+          div(
+            class = "plot-container",
+            h4(
+              "Parameters for True Underlying RR and Data Generation",
+              style = "margin-top: 0; margin-bottom: 10px;"
+            )
+          ))),
+        
         # -----------------------------------------------------
         # ARGVAR
         # -----------------------------------------------------
-        
+      fluidRow(
         column(
-          width = 6,
+          width = 3,
           
           div(
             class = "plot-container",
             
-            h4(
-              "Exposure Basis (ARGVAR)",
-              style = "margin-top: 0; margin-bottom: 10px;"
-            ),
-            
             textAreaInput(
               "argvar_text",
-              "ARGVAR",
+              "Exposure basis (ARGVAR)",
               value = "list(fun = 'ns', knots = c(50, 70))",
               rows = 3,
               width = "100%"
@@ -706,19 +719,14 @@ ui <- fluidPage(
         # -----------------------------------------------------
         
         column(
-          width = 6,
+          width = 3,
           
           div(
             class = "plot-container",
             
-            h4(
-              "Lag Basis (ARGLAG)",
-              style = "margin-top: 0; margin-bottom: 10px;"
-            ),
-            
             textAreaInput(
               "arglag_text",
-              "ARGLAG",
+              "Lag Basis (ARGLAG)",
               value = "list(fun = 'ns', knots = 2)",
               rows = 3,
               width = "100%"
@@ -728,16 +736,7 @@ ui <- fluidPage(
               "Example: list(fun = 'ns', knots = 2)"
             )
           )
-        )
-        
-      ),
-      
-      
-      # -------------------------------------------------------
-      # Other settings
-      # -------------------------------------------------------
-      
-      fluidRow(
+        ),
         
         column(
           width = 3,
@@ -754,6 +753,8 @@ ui <- fluidPage(
               step = 1,
               width = "100%"
             )
+            
+            
           )
         ),
         
@@ -770,29 +771,83 @@ ui <- fluidPage(
               step = 1,
               width = "100%"
             )
+            
+           
           )
         )
         
       ),
       
       
+
+      
       # -------------------------------------------------------
       # Results
       # -------------------------------------------------------
+      shiny::hr(),
       
       combinedRRPlotUI(
         "true_rr_surface",
-        "True RR Surface"
+        "True RR Surface",
+        pOther = plotOutput("trueRRCumulative",               
+                   width = "95%",
+                   height = "300px"),
+        hOther = helpText("This plots the cumulative RR, i.e.,",
+               "the sum of each of the risk curves from
+                        lag 0 to maxlag. This is the same as the output",
+               "from plot.crosspred(cp, 'overall')")
+      
       ),
       
-      h4(
-        "True Cumulative RR",
-        style = "margin-top: 0; margin-bottom: 10px;"
-      ),
+      shiny::hr(),
       
-      plotOutput("trueRRCumulative",               
-                 width = "50%",
-                 height = "300px")
+      fluidRow(
+        
+        column(width = 4,
+          h4(
+            "Updated outcome timeseries",
+            style = "margin-top: 0; margin-bottom: 10px;"
+          )
+        ),
+        column(width = 2,
+               p("Poisson draw"),
+               checkboxInput(
+                 "pois_draw",
+                 "",
+                 value = T
+               )
+               ),
+        column(width = 2,
+               numericInput("model_error_sd",
+                            "Model error",
+                            value = 0.1, min = 0.0000001, step = 0.01)
+        ),
+        column(width = 2,
+               numericInput(
+                 "full_case_ymin",
+                 "Ymin",
+                 value = 0,
+                 width = "100%"
+               )
+        ),
+        column(width = 2,
+               numericInput(
+               "full_case_ymax",
+               "Ymax",
+               value = 0,
+               width = "100%")
+        )
+      ),
+      fluidRow(
+        column(
+          width = 12,
+          plotOutput(
+            "full_case_timeseries",
+            width = "100%",
+            height = "300px"
+          )
+        )
+      )
     ),
     
     
@@ -813,24 +868,6 @@ ui <- fluidPage(
                        "Case Year",
                        value = 1980,
                        min = 1981, max = 1999, step = 1)
-        ),
-        
-        column(
-          width = 3,
-          numericInput("model_error_sd",
-                       "Model error",
-                       value = 0.1, min = 0.0000001, step = 0.01)
-        ),
-        
-        column(
-          width = 3,
-          p("Take Poisson draw"),
-          checkboxInput(
-            "pois_draw",
-            "",
-            value = T
-          )
-
         ),
         
         column(
@@ -1058,6 +1095,7 @@ server <- function(input, output, session) {
   
   shinyjs::disable("temp_min")
   shinyjs::disable("temp_max")
+  shinyjs::disable("maxlag")
   
   observeEvent(input$use_station_data, {
     
@@ -1208,7 +1246,8 @@ server <- function(input, output, session) {
     dx = 5,     ## TODO: update to 5% of difference
     ymin = 0.9,
     ymax = 1.1,
-    col = 'red'
+    col = 'red',
+    islag = FALSE
   )
   
   plot2 <- rtPlotServer(
@@ -1222,7 +1261,8 @@ server <- function(input, output, session) {
     dx = 5,     ## TODO: update to 5% of difference
     ymin = 0.9,
     ymax = 1.1,
-    col = 'purple'
+    col = 'purple',
+    islag = FALSE
   )
   
   plot3 <- rtPlotServer(
@@ -1234,9 +1274,10 @@ server <- function(input, output, session) {
     xmin = 0,
     xmax = 5, ## TODO: update to input$maxlag
     dx = 1,
-    ymin = 0.5,
+    ymin = 0.0,
     ymax = 1.1,
-    col = 'yellow'
+    col = 'yellow',
+    islag = TRUE
   )
   
   RRmat_orig <- reactive({
@@ -1517,6 +1558,8 @@ server <- function(input, output, session) {
 
     for (i in seq_len(nrow(df))) {
       
+      if(any(is.na(origbasis[i, ]))) next
+      
       # generating the expcted value
       deaths_expected_value[i] <-
         df$death[i] * exp(sum(origbasis[i, ] * true_rr()$beta)  + error[i])
@@ -1537,8 +1580,7 @@ server <- function(input, output, session) {
     
     df$death_updated <- round(death_updated)
     df$death_expected_value <- deaths_expected_value
-    print(head(df))
-    
+
     # -----------------------------------------------------
     # Regression model
     # -----------------------------------------------------
@@ -1603,6 +1645,28 @@ server <- function(input, output, session) {
       beta_estimated = coef(m_sub)
     )
     
+  })
+  
+  output$full_case_timeseries <- renderPlot({
+    
+    res <- model_results()
+    
+    df <- res$data
+    
+    ggplot(df) +
+      geom_point(
+        aes(
+          x = date,
+          y = death_updated
+        )
+      ) +
+      labs(
+        x = NULL,
+        y = "Deaths",
+        title = "Updated deaths"
+      ) +
+      theme_minimal() +
+      coord_cartesian(ylim = c(input$full_case_ymin, input$full_case_ymax))
   })
   
   output$case_timeseries <- renderPlot({
@@ -1770,8 +1834,20 @@ server <- function(input, output, session) {
     
     updateNumericInput(
       session,
+      "full_case_ymin",
+      value = input$baseline * 0.25
+    )
+    
+    updateNumericInput(
+      session,
       "case_ymax",
       value = input$baseline * 1.5
+    )
+    
+    updateNumericInput(
+      session,
+      "full_case_ymax",
+      value = input$baseline * 2.0
     )
     
   })
