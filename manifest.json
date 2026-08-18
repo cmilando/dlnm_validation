@@ -4111,6 +4111,38 @@
         "Built": "R 4.5.2; ; 2026-06-21 15:26:39 UTC; unix"
       }
     },
+    "shinyjs": {
+      "Source": "CRAN",
+      "Repository": "https://cran.rstudio.com",
+      "description": {
+        "Package": "shinyjs",
+        "Title": "Easily Improve the User Experience of Your Shiny Apps in Seconds",
+        "Version": "2.1.0",
+        "Authors@R": "person(\"Dean\", \"Attali\", \n    email = \"daattali@gmail.com\",\n    role = c(\"aut\", \"cre\"),\n    comment= c(ORCID=\"0000-0002-5645-3493\"))",
+        "Description": "Perform common useful JavaScript operations in Shiny apps that will\n    greatly improve your apps without having to know any JavaScript. Examples\n    include: hiding an element, disabling an input, resetting an input back to\n    its original value, delaying code execution by a few seconds, and many more\n    useful functions for both the end user and the developer. 'shinyjs' can also\n    be used to easily call your own custom JavaScript functions from R.",
+        "URL": "https://deanattali.com/shinyjs/",
+        "BugReports": "https://github.com/daattali/shinyjs/issues",
+        "Depends": "R (>= 3.1.0)",
+        "Imports": "digest (>= 0.6.8), jsonlite, shiny (>= 1.0.0)",
+        "Suggests": "htmltools (>= 0.2.9), knitr (>= 1.7), rmarkdown, shinyAce,\nshinydisconnect, testthat (>= 0.9.1)",
+        "License": "MIT + file LICENSE",
+        "VignetteBuilder": "knitr",
+        "RoxygenNote": "7.1.1",
+        "Encoding": "UTF-8",
+        "NeedsCompilation": "no",
+        "Packaged": "2021-12-21 11:32:22 UTC; Dean-X1C",
+        "Author": "Dean Attali [aut, cre] (<https://orcid.org/0000-0002-5645-3493>)",
+        "Maintainer": "Dean Attali <daattali@gmail.com>",
+        "Repository": "CRAN",
+        "Date/Publication": "2021-12-23 10:10:02 UTC",
+        "Built": "R 4.5.0; ; 2025-04-01 20:32:03 UTC; unix",
+        "RemoteType": "standard",
+        "RemotePkgRef": "shinyjs",
+        "RemoteRef": "shinyjs",
+        "RemoteRepos": "https://cran.rstudio.com",
+        "RemoteSha": "2.1.0"
+      }
+    },
     "sourcetools": {
       "Source": "CRAN",
       "Repository": "https://cran.rstudio.com",
@@ -5212,7 +5244,7 @@
       "checksum": "924cb3ac590f7bf65363ebab8ac36813"
     },
     "app.R": {
-      "checksum": "f5056a8049884800f84f95aef3ea7414"
+      "checksum": "fbe974e67a8ce72d7a186d55c7fd845c"
     },
     "getdailystat73.149.185.213.228.6.19.51": {
       "checksum": "5d3222068ff41f364be5af8b439619b9"
