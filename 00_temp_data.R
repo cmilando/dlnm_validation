@@ -39,3 +39,33 @@ x1 <- temp_data[
 x1
 
 plot(x1$date, x1$tmaxF)
+
+## ok well now model this so you can control this too
+library(splines)
+temp_basis <- dlnm::onebasis(temp_data$tmaxF,
+                       fun = 'ns', df = 7 * 19)
+dim(temp_basis)
+
+temp_data$yday = yday(temp_data$date)
+temp_data$yr = year(temp_data$date)
+
+temp_m1 <- lm(tmaxF ~ 
+                ns(yday, df = 4) + 
+                ns(yr, df = 2), data = temp_data)
+summary(temp_m1)
+temp_pred = predict(temp_m1)
+temp_data$predT = temp_pred
+temp_data$idx = 1:nrow(temp_data)
+
+# now also fit a sine curve to this
+A = (max(temp_pred) - min(temp_pred))/2 # amplitude
+B = 2*pi/365 # 2 pi / period
+D = (max(temp_pred) + min(temp_pred))/2 # vertical shift
+C = 4.44 # phase shift
+year_growth = 0.01
+daily_growth = (1 + year_growth)^(1/365) - 1
+sinTemp = (A * sin(B*temp_data$idx + C) + D) * exp(daily_growth * temp_data$idx)
+
+plot(temp_data$date, temp_data$tmaxF) 
+lines(temp_data$date, temp_data$predT, col = 'red')
+lines(temp_data$date, sinTemp, col = 'blue')

@@ -64,7 +64,8 @@ rtPlotServer <- function(
     xmax,
     dx,
     ymin,
-    ymax
+    ymax,
+    col
 ) {
   
   moduleServer(
@@ -150,7 +151,7 @@ rtPlotServer <- function(
             xsizemode = "pixel",
             ysizemode = "pixel",
             
-            fillcolor = "red",
+            fillcolor = col,
             
             line = list(
               color = "black",
@@ -184,7 +185,7 @@ rtPlotServer <- function(
           add_lines(
             x = grid$x,
             y = grid$y,
-            color = I("#F89880"),
+            color = I(col),
             showlegend = FALSE,
             hoverinfo = "y",
             hovertemplate = "%{y:.3f}<extra></extra>"
@@ -249,6 +250,9 @@ rtPlotServer <- function(
       # Capture draggable shape movements
       # ---------------------------------------------------
       
+      snap_x <- function(x) round(x / 5) * 5
+      snap_y <- function(y) round(y / 0.1) * 0.1
+      
       observe({
         
         ed <- event_data(
@@ -286,6 +290,7 @@ rtPlotServer <- function(
         }
         
         
+        
         # -----------------------------------------------
         # X bounds
         # -----------------------------------------------
@@ -315,6 +320,7 @@ rtPlotServer <- function(
           ymin,
           min(ymax, pts[2])
         )
+        
       })
       
       
@@ -365,7 +371,7 @@ combinedRRPlotUI <- function(id, title = "Combined RR") {
             180,
             min = -360,
             max = 360,
-            step = 1,
+            step = 5,
             width = "100%"
           ),
           
@@ -375,7 +381,7 @@ combinedRRPlotUI <- function(id, title = "Combined RR") {
             126,
             min = -360,
             max = 360,
-            step = 1,
+            step = 5,
             width = "100%"
           ),
           
@@ -385,7 +391,7 @@ combinedRRPlotUI <- function(id, title = "Combined RR") {
             104,
             min = -360,
             max = 360,
-            step = 1,
+            step = 5,
             width = "100%"
           )
         )
@@ -456,6 +462,11 @@ combinedRRPlotServer <- function(
           "RR"
         )
         
+        ## make edge lines
+        l1 <- subset(RR_df, l == 0)
+        l2 <- subset(RR_df, l == max(l()))
+        l3 <- subset(RR_df, x == max(x()))
+        
         # -------------------------------------------------
         # 3D surface
         # -------------------------------------------------
@@ -467,14 +478,34 @@ combinedRRPlotServer <- function(
               y = l,
               z = RR,
               fill = RR
-            )
+            ), 
+          ) +
+          geom_line(data = l1,
+                    mapping = aes(x = x, y = l, z = RR),
+                    color = 'red',
+                    linewidth = 2) +
+          geom_line(data = l2,
+                    mapping = aes(x = x, y = l, z = RR),
+                    color = 'purple',
+                    linewidth = 2) +
+          geom_line(data = l3,
+                    mapping = aes(x = x, y = l, z = RR),
+                    color = 'yellow',
+                    linewidth = 2) +
+          geom_surface_3d(
+            mapping = aes(
+              x = x,
+              y = l,
+              z = RR,
+              fill = RR
+            ), color = 'transparent' 
           ) +
           coord_3d(
             pitch = input$pitch,
             yaw = input$yaw,
             roll = input$roll
           ) +
-          scale_fill_gradient2()
+          scale_fill_gradient()
       })
     }
   )

@@ -571,7 +571,7 @@ ui <- fluidPage(
       fluidRow(
         
         column(
-          width = 3,
+          width = 2,
           numericInput("case_year",
                        "Case Year",
                        value = 1980,
@@ -582,11 +582,22 @@ ui <- fluidPage(
           width = 3,
           numericInput("model_error_sd",
                        "Model error",
-                       value = 0.1, min = 0.0000001)
+                       value = 0.1, min = 0.0000001, step = 0.01)
         ),
         
         column(
           width = 3,
+          p("Take Poisson draw"),
+          checkboxInput(
+            "pois_draw",
+            "",
+            value = T
+          )
+
+        ),
+        
+        column(
+          width = 2,
           conditionalPanel(
             "input.baseline > 0",
             
@@ -600,7 +611,7 @@ ui <- fluidPage(
         ),
         
         column(
-          width = 3,
+          width = 2,
           conditionalPanel(
             "input.baseline > 0",
             
@@ -641,7 +652,7 @@ ui <- fluidPage(
             plotOutput(
               "temp_timeseries",
               width = "100%",
-              height = "300px"
+              height = "250px"
             )
           )
         )
@@ -884,7 +895,8 @@ server <- function(input, output, session) {
     xmax = 100,
     dx = 5,
     ymin = 0.9,
-    ymax = 1.1
+    ymax = 1.1,
+    col = 'red'
   )
   
   plot2 <- rtPlotServer(
@@ -897,7 +909,8 @@ server <- function(input, output, session) {
     xmax = 100,
     dx = 5,
     ymin = 0.9,
-    ymax = 1.1
+    ymax = 1.1,
+    col = 'purple'
   )
   
   plot3 <- rtPlotServer(
@@ -910,7 +923,8 @@ server <- function(input, output, session) {
     xmax = 5,
     dx = 1,
     ymin = 0.5,
-    ymax = 1.1
+    ymax = 1.1,
+    col = 'yellow'
   )
   
   RRmat_orig <- reactive({
@@ -1054,6 +1068,8 @@ server <- function(input, output, session) {
         # }
       }
       
+      true_cen = x[which.min(cumfit[, ncol(cumfit)])]
+      
       # cout <- exp(cumfit)
       # names(cout) <- c('temp', paste0("lag", l))
       # row.names(cout) <- x
@@ -1123,6 +1139,7 @@ server <- function(input, output, session) {
       
       list(
         beta = beta,
+        true_cen = true_cen,
         data = rebuild_RRmat,
         Xpred = Xpred,
         RRmat = rebuild_RRmat_out,
@@ -1154,6 +1171,10 @@ server <- function(input, output, session) {
       geom_line() + #geom_point() + 
       annotate(geom = 'point', y = 1, x = input$cen,
                color= 'red', shape = 15, size = 5) +
+      annotate(geom = 'text',
+               x = df$x[1],
+               y = max(df$y),
+               label = paste0("Cen = ", true_rr()$true_cen)) +
       xlab("Temperature") + 
       ylab("RR") + theme_minimal()
   })
@@ -1173,16 +1194,6 @@ server <- function(input, output, session) {
     ]
     
     # -----------------------------------------------------
-    # Centering temperature
-    # -----------------------------------------------------
-    
-    x_cen <- which.min(
-      abs(
-        df$tmaxF - input$cen
-      )
-    )
-    
-    # -----------------------------------------------------
     # Original crossbasis
     # -----------------------------------------------------
     
@@ -1193,17 +1204,20 @@ server <- function(input, output, session) {
       lag = input$maxlag
     )
     
-    # -----------------------------------------------------
-    # Recenter basis
-    # -----------------------------------------------------
-    
-    basiscen <- origbasis[x_cen, ]
-    
-    newbasis <- scale(
-      origbasis,
-      center = basiscen,
-      scale = FALSE
-    )
+    # # -----------------------------------------------------
+    # # Recenter basis
+    # # -----------------------------------------------------
+    # 
+    # basiscen <- onebasis(
+    #   x = mean(df$tmaxF)
+    #   argvar = argvar(),
+    # )
+    # 
+    # newbasis <- scale(
+    #   origbasis,
+    #   center = basiscen,
+    #   scale = FALSE
+    # )
     
     # -----------------------------------------------------
     # Generate updated deaths
@@ -1228,26 +1242,31 @@ server <- function(input, output, session) {
       
       # generating the expcted value
       deaths_expected_value[i] <-
-        df$death[i] * exp(sum(newbasis[i, ] * true_rr()$beta)  + error[i])
+        df$death[i] * exp(sum(origbasis[i, ] * true_rr()$beta)  + error[i])
       
       # and then taking a draw from a poisson distribution
       # using that value --> should you add additional variance
-      death_updated[i] <- rpois(
-        n = 1,
-        lambda = deaths_expected_value[i]
-      )
+      if(input$pois_draw) {
+        death_updated[i] <- rpois(
+          n = 1,
+          lambda = deaths_expected_value[i]
+        )
+      } else {
+        death_updated[i] <- deaths_expected_value[i]
+      }
+      
       
 
     }
     
-    df$death_updated <- death_updated
+    df$death_updated <- round(death_updated)
     
     # -----------------------------------------------------
     # Regression model
     # -----------------------------------------------------
     
     m_sub <- gnm::gnm(
-      death_updated ~ newbasis,
+      death_updated ~ origbasis,
       data = df,
       family = quasipoisson,
       eliminate = factor(strata)
@@ -1258,7 +1277,7 @@ server <- function(input, output, session) {
     # -----------------------------------------------------
     
     cp <- dlnm::crosspred(
-      newbasis,
+      origbasis,
       m_sub,
       cen = min(df$tmaxF),
       by = 1,
@@ -1271,7 +1290,7 @@ server <- function(input, output, session) {
     ]
     
     cp <- dlnm::crosspred(
-      newbasis,
+      origbasis,
       m_sub,
       cen = xcen,
       by = 1,
@@ -1298,7 +1317,7 @@ server <- function(input, output, session) {
     
     list(
       data = df,
-      basis = newbasis,
+      basis = origbasis,
       model = m_sub,
       crosspred = cp,
       xcen = xcen,
