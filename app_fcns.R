@@ -676,3 +676,66 @@ calc_vcov <- function(y, X, beta, stratum_vector) {
   # under the conditional Poisson (multinomial) likelihood
   return(ginv(I))
 }
+
+get_temp_data <- function(input) {
+  
+  temp_data <- read.table(
+    "getdailystat73.149.185.213.228.6.19.51",
+    sep = ",",
+    colClasses = c(
+      "numeric",
+      rep("character", 3)
+    )
+  )
+  
+  names(temp_data) <- c(
+    "tmaxF",
+    "year",
+    "month",
+    "day"
+  )
+  
+  setDT(temp_data)
+  
+  temp_data[
+    ,
+    dtstr := paste0(
+      trimws(year), "-",
+      trimws(month), "-",
+      trimws(day)
+    )
+  ]
+  
+  temp_data[
+    ,
+    date := as.IDate(dtstr)
+  ]
+  
+  temp_data[
+    ,
+    c("month", "day", "dtstr") := NULL
+  ]
+  
+  temp_data[
+    ,
+    year := year(date)
+  ]
+  
+  temp_data[
+    ,
+    city := input$city
+  ]
+  
+  # add a simple pred
+  temp_data$yday = yday(temp_data$date)
+  
+  temp_m1 <- lm(tmaxF ~ 
+                  ns(yday, df = 4) + 
+                  ns(year, df = 2), data = temp_data)
+  
+  temp_pred = predict(temp_m1)
+  temp_data$temp_pred = temp_pred
+  temp_data$idx = 1:nrow(temp_data)
+  
+  temp_data
+}

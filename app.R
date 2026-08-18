@@ -7,11 +7,13 @@ library(data.table)
 library(ggcube)
 library(ggplot2)
 library(bslib)
-
+library(shinyjs)
 
 source("app_fcns.R")
 
 ui <- fluidPage(
+  
+  useShinyjs(),
   
   tags$head(
     tags$style(HTML("
@@ -67,15 +69,15 @@ ui <- fluidPage(
           background-color: #f9f9f9;
           border: 0.5px solid #ccc;
           border-radius: 4px;
-          margin-top: 20px;
-        ",
+          margin-top: 20px;",
             
             # -------------------------------------------------
             # Title
             # -------------------------------------------------
             
             h2(
-              "Assessing Validity of Distributed Lag Non-Linear Models Applied in Environmental Epidemiology",
+              "Assessing Validity of Distributed Lag Non-Linear Models 
+              Applied in Environmental Epidemiology",
               style = "
             text-align: center;
             line-height: 1.3;
@@ -149,10 +151,7 @@ ui <- fluidPage(
             
             h5(
               "Funding attribution",
-              style = "
-    margin-top: 30px;
-    margin-bottom: 15px;
-  "
+              style = "margin-top: 30px;margin-bottom: 15px;"
             ),
             
             p(
@@ -164,10 +163,10 @@ ui <- fluidPage(
                 "311886/Z/24/Z)."
               ),
               style = "
-    font-size: 15px;
-    line-height: 1.7;
-    text-align: justify;
-  "
+                        font-size: 15px;
+                        line-height: 1.7;
+                        text-align: justify;
+                      "
             )
             
           )
@@ -193,7 +192,7 @@ ui <- fluidPage(
         # -----------------------------------------------------
         
         column(
-          width = 6,
+          width = 3,
           
           div(
             class = "plot-container",
@@ -212,6 +211,20 @@ ui <- fluidPage(
               width = "100%"
             ),
             
+          )
+        ),
+        
+        column(
+          width = 3,
+          
+          div(
+            class = "plot-container",
+            
+            h4(
+              " _ ",
+              style = "margin-top: 0; margin-bottom: 10px;color: white;"
+            ),
+            
             numericInput(
               "sd",
               "Random variation (SD)",
@@ -222,6 +235,9 @@ ui <- fluidPage(
             )
           )
         ),
+          
+
+        
         
         
         # -----------------------------------------------------
@@ -229,7 +245,7 @@ ui <- fluidPage(
         # -----------------------------------------------------
         
         column(
-          width = 6,
+          width = 3,
           
           div(
             class = "plot-container",
@@ -247,6 +263,20 @@ ui <- fluidPage(
               max = 1,
               step = 0.01,
               width = "100%"
+            ),
+            
+          )
+        ),
+        
+        column(
+          width = 3,
+          
+          div(
+            class = "plot-container",
+            
+            h4(
+              " _ ",
+              style = "margin-top: 0; margin-bottom: 10px;color: white;"
             ),
             
             numericInput(
@@ -404,12 +434,35 @@ ui <- fluidPage(
         
         column(
           width = 12,
+          div(
+            class = "plot-container",
+            
+              h4(
+                "Use station data?",
+                style = "margin-top: 0; margin-bottom: 15px;"
+              ),
+            
+              checkboxInput("use_station_data", label = "Read file?"),
+            
+            helpText("Daily maximum temperature (°F), 1980–1999 at Boston Logan Airport, retrieved from https://psl.noaa.gov/data/timeseries/daily/"),
+            tags$br(noWS=TRUE),
+            helpText("File name: `getdailystat73.149.185.213.228.6.19.51`")
+            
+          )
+        )
+        
+      ),
+      
+      fluidRow(
+        
+        column(
+          width = 12,
           
           div(
             class = "plot-container",
             
             h4(
-              "Temperature Parameters",
+              "Simulation Parameters",
               style = "margin-top: 0; margin-bottom: 15px;"
             ),
             
@@ -990,85 +1043,113 @@ server <- function(input, output, session) {
   
   ## *******************************
   
+  observeEvent(input$use_station_data, {
+    
+    if (input$use_station_data) {
+      
+      shinyjs::disable("temp_min")
+      shinyjs::disable("temp_max")
+      shinyjs::disable("temp_phase")
+      shinyjs::disable("temp_growth")
+      shinyjs::disable("temp_noise")
+      
+    } else {
+      
+      shinyjs::enable("temp_min")
+      shinyjs::enable("temp_max")
+      shinyjs::enable("temp_phase")
+      shinyjs::enable("temp_growth")
+      shinyjs::enable("temp_noise")
+      
+    }
+  })
+  
   temp_data <- reactive({
     
-    # -------------------------------------------------------
-    # Get dates from baseline population
-    # -------------------------------------------------------
+    if(input$use_station_data) {
+      
+      get_temp_data(input)
+      
+    } else {
     
-    baseline <- baseline_cases()
-    
-    dates <- baseline$date
-    
-    # -------------------------------------------------------
-    # Daily index
-    # -------------------------------------------------------
-    
-    idx <- seq_along(dates)
-    
-    # -------------------------------------------------------
-    # Temperature parameters
-    # -------------------------------------------------------
-    
-    A <- (
-      input$temp_max -
-        input$temp_min
-    ) / 2
-    
-    B <- 2 * pi / 365
-    
-    D <- (
-      input$temp_max +
-        input$temp_min
-    ) / 2
-    
-    C <- input$temp_phase
-    
-    year_growth <- input$temp_growth
-    
-    daily_growth <- (
-      1 + year_growth
-    )^(1 / 365) - 1
-    
-    # -------------------------------------------------------
-    # Seasonal temperature
-    # -------------------------------------------------------
-    
-    temp_pred <- (
-      A * sin(B * idx + C) + D
-    ) *
-      exp(
-        daily_growth * idx
+      # -------------------------------------------------------
+      # Get dates from baseline population
+      # -------------------------------------------------------
+      
+      baseline <- baseline_cases()
+      
+      dates <- baseline$date
+      
+      # -------------------------------------------------------
+      # Daily index
+      # -------------------------------------------------------
+      
+      idx <- seq_along(dates)
+      
+      # -------------------------------------------------------
+      # Temperature parameters
+      # -------------------------------------------------------
+      
+      A <- (
+        input$temp_max -
+          input$temp_min
+      ) / 2
+      
+      B <- 2 * pi / 365
+      
+      D <- (
+        input$temp_max +
+          input$temp_min
+      ) / 2
+      
+      C <- input$temp_phase
+      
+      year_growth <- input$temp_growth
+      
+      daily_growth <- (
+        1 + year_growth
+      )^(1 / 365) - 1
+      
+      # -------------------------------------------------------
+      # Seasonal temperature
+      # -------------------------------------------------------
+      
+      temp_pred <- (
+        A * sin(B * idx + C) + D
+      ) *
+        exp(
+          daily_growth * idx
+        )
+      
+      # -------------------------------------------------------
+      # Add noise
+      # -------------------------------------------------------
+      
+      set.seed(input$seed)
+      noise = input$temp_noise
+      tmaxF = sapply(temp_pred, \(x) 
+                     runif(n = 1, min = x - noise, max = x + noise))
+      
+      # temp_pred = scales::rescale(temp_pred, to = c(0, 100))
+      # tmaxF = scales::rescale(tmaxF, to = c(0, 100))
+      
+      # limit to <= 100 and >= 0
+      tmaxF = ifelse(tmaxF > 100, 100, tmaxF)
+      tmaxF = ifelse(tmaxF < 0, 0, tmaxF)
+      
+      # -------------------------------------------------------
+      # Return data
+      # -------------------------------------------------------
+      
+      data.table::data.table(
+        date = dates,
+        city = baseline$city,
+        year = lubridate::year(dates),
+        idx = idx,
+        temp_pred = temp_pred,
+        tmaxF = tmaxF
       )
-    
-    # -------------------------------------------------------
-    # Add noise
-    # -------------------------------------------------------
-    
-    set.seed(input$seed)
-    noise = input$temp_noise
-    tmaxF = sapply(temp_pred, \(x) 
-                   runif(n = 1, min = x - noise, max = x + noise))
-    
-    # temp_pred = scales::rescale(temp_pred, to = c(0, 100))
-    # tmaxF = scales::rescale(tmaxF, to = c(0, 100))
-    
-    # limit to <= 100 and >= 0
-    tmaxF = ifelse(tmaxF > 100, 100, tmaxF)
-    tmaxF = ifelse(tmaxF < 0, 0, tmaxF)
-    
-    # -------------------------------------------------------
-    # Return data
-    # -------------------------------------------------------
-    
-    data.table::data.table(
-      date = dates,
-      city = baseline$city,
-      year = lubridate::year(dates),
-      idx = idx,
-      temp_pred = temp_pred,
-      tmaxF = tmaxF
-    )
+    }
   })
   output$temperature_plot <- renderPlot({
     
@@ -1692,7 +1773,7 @@ server <- function(input, output, session) {
   output$temp_summary <- renderPrint({
     
     summary(
-      temp_data()
+      temp_data()$tmaxF
     )
   })
   

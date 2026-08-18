@@ -5191,28 +5191,37 @@
   },
   "files": {
     "00_get_baseline_cases_exposure.R": {
-      "checksum": "a009fb4c965439e2f5ed5c848f5cccd3"
+      "checksum": "24a8a87a8addb1fc6d06043e6b415465"
+    },
+    "00_temp_data.R": {
+      "checksum": "a88348bf35c845a6742ef39fd985bffd"
     },
     "01_make3d.R": {
-      "checksum": "b51d23cb5ca4e7a1bf76e2ebd9d027c5"
+      "checksum": "2997a4cf5d5045a6f7b6c158e0158883"
     },
     "02_makeXpredall.R": {
-      "checksum": "7a0f4fb52f910a0ebc39a6b22662863e"
+      "checksum": "be44b183b4ff73425afc5587ae6f5f68"
     },
     "03_updateCases.R": {
-      "checksum": "0181a1336b4f49fd3c91e88a80d5b90d"
+      "checksum": "a3e759ea1f4978cc06ec4810d78d8456"
     },
     "04_getBeta.R": {
-      "checksum": "1a2f8955d1eaadbda255d7c62620a676"
+      "checksum": "6ea37e36251fae7df0f9896735ef0752"
     },
     "app_fcns.R": {
-      "checksum": "2c316639f51b330f67bb8b83ce4d5de8"
+      "checksum": "924cb3ac590f7bf65363ebab8ac36813"
     },
     "app.R": {
-      "checksum": "0d66d9d2d73bc22810304b88aa767f9b"
+      "checksum": "f5056a8049884800f84f95aef3ea7414"
+    },
+    "getdailystat73.149.185.213.228.6.19.51": {
+      "checksum": "5d3222068ff41f364be5af8b439619b9"
+    },
+    "heatmetrics/heatmetrics_1.0.tar.gz": {
+      "checksum": "92bad40f5d2e7a54b2cb5fcd2d73d61e"
     },
     "README.md": {
-      "checksum": "d3c79fbfdac31f282b0c79bdde8fb8d4"
+      "checksum": "80303ab36231bc7789d7642574063988"
     },
     "scratch/00_dlnm.test.R": {
       "checksum": "fb07ca27dfc01f1e662f081228ab077d"
