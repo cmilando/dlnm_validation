@@ -480,15 +480,15 @@ combinedRRPlotServer <- function(
               fill = RR
             ), 
           ) +
-          geom_line(data = l1,
+          geom_path_3d(data = l1,
                     mapping = aes(x = x, y = l, z = RR),
                     color = 'red',
                     linewidth = 2) +
-          geom_line(data = l2,
+          geom_path_3d(data = l2,
                     mapping = aes(x = x, y = l, z = RR),
                     color = 'purple',
                     linewidth = 2) +
-          geom_line(data = l3,
+          geom_path_3d(data = l3,
                     mapping = aes(x = x, y = l, z = RR),
                     color = 'yellow',
                     linewidth = 2) +
@@ -505,7 +505,12 @@ combinedRRPlotServer <- function(
             yaw = input$yaw,
             roll = input$roll
           ) +
-          scale_fill_gradient()
+          scale_fill_gradient() + 
+          labs(
+            x = 'Temperature (F)',
+            y = 'Lag day',
+            z = 'Relative Risk (RR)'
+          )
       })
     }
   )
