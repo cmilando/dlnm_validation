@@ -378,7 +378,7 @@ combinedRRPlotUI <- function(id, title = "Combined RR") {
           numericInput(
             ns("yaw"),
             "Yaw",
-            126,
+            140,
             min = -360,
             max = 360,
             step = 5,

@@ -466,15 +466,17 @@ ui <- fluidPage(
               style = "margin-top: 0; margin-bottom: 15px;"
             ),
             
+            helpText("Parameters for working with simulated temperature data."),
+            
             fluidRow(
               
               column(
                 width = 2,
                 numericInput(
-                  "temp_min",
-                  "Minimum temp.",
+                  "amplitude_min",
+                  "Amplitude min.",
                   value = 30,
-                  step = 0.1,
+                  step = 5,
                   width = "100%"
                 )
               ),
@@ -482,21 +484,10 @@ ui <- fluidPage(
               column(
                 width = 2,
                 numericInput(
-                  "temp_max",
-                  "Maximum temp.",
+                  "amplitude_max",
+                  "Amplitude max.",
                   value = 70,
-                  step = 0.1,
-                  width = "100%"
-                )
-              ),
-              
-              column(
-                width = 2,
-                numericInput(
-                  "temp_phase",
-                  "Phase shift",
-                  value = 4.44,
-                  step = 0.01,
+                  step = 5,
                   width = "100%"
                 )
               ),
@@ -507,7 +498,7 @@ ui <- fluidPage(
                   "temp_growth",
                   "Annual growth",
                   value = 0.01,
-                  step = 0.001,
+                  step = 0.01,
                   width = "100%"
                 )
               ),
@@ -519,7 +510,29 @@ ui <- fluidPage(
                   "Temp. noise",
                   value = 35,
                   min = 0,
-                  step = 1,
+                  step = 5,
+                  width = "100%"
+                )
+              ),
+              
+              column(
+                width = 2,
+                numericInput(
+                  "temp_min",
+                  "T. lower bound",
+                  value = 0,
+                  step = 5,
+                  width = "100%"
+                )
+              ),
+              
+              column(
+                width = 2,
+                numericInput(
+                  "temp_max",
+                  "T. upper bound",
+                  value = 100,
+                  step = 5,
                   width = "100%"
                 )
               )
@@ -1043,21 +1056,22 @@ server <- function(input, output, session) {
   
   ## *******************************
   
+  shinyjs::disable("temp_min")
+  shinyjs::disable("temp_max")
+  
   observeEvent(input$use_station_data, {
     
     if (input$use_station_data) {
       
-      shinyjs::disable("temp_min")
-      shinyjs::disable("temp_max")
-      shinyjs::disable("temp_phase")
+      shinyjs::disable("amplitude_min")
+      shinyjs::disable("amplitude_max")
       shinyjs::disable("temp_growth")
       shinyjs::disable("temp_noise")
       
     } else {
       
-      shinyjs::enable("temp_min")
-      shinyjs::enable("temp_max")
-      shinyjs::enable("temp_phase")
+      shinyjs::enable("amplitude_min")
+      shinyjs::enable("amplitude_max")
       shinyjs::enable("temp_growth")
       shinyjs::enable("temp_noise")
       
@@ -1091,18 +1105,20 @@ server <- function(input, output, session) {
       # -------------------------------------------------------
       
       A <- (
-        input$temp_max -
-          input$temp_min
+        input$amplitude_max -
+          input$amplitude_min
       ) / 2
       
-      B <- 2 * pi / 365
+      # daily
+      B <- 2 * pi / 365.25
       
       D <- (
-        input$temp_max +
-          input$temp_min
+        input$amplitude_max +
+          input$amplitude_min
       ) / 2
       
-      C <- input$temp_phase
+      # hard coded the phase shift for cold in winter
+      C <- 4.44
       
       year_growth <- input$temp_growth
       
@@ -1133,9 +1149,9 @@ server <- function(input, output, session) {
       # temp_pred = scales::rescale(temp_pred, to = c(0, 100))
       # tmaxF = scales::rescale(tmaxF, to = c(0, 100))
       
-      # limit to <= 100 and >= 0
-      tmaxF = ifelse(tmaxF > 100, 100, tmaxF)
-      tmaxF = ifelse(tmaxF < 0, 0, tmaxF)
+      # limit to upper and lower bounds
+      tmaxF = ifelse(tmaxF > input$temp_max, input$temp_max, tmaxF)
+      tmaxF = ifelse(tmaxF < input$temp_min, input$temp_min, tmaxF)
       
       # -------------------------------------------------------
       # Return data
@@ -1173,19 +1189,23 @@ server <- function(input, output, session) {
         y = "Temperature",
         title = "Simulated temperature time series"
       ) +
-      theme_minimal()
+      theme_minimal() + 
+      coord_cartesian(ylim = c(input$temp_min, input$temp_max))
   })
   
   ## *******************************
+  RRplot_xcoords <- c(0, 30, 60, 100) ## TODO: update to input$temp_max
+  RRplot_lagcoords <- c(0, 3, 4, 5)   ## TODO: update to input$maxlag
+  
   plot1 <- rtPlotServer(
     "plot1",
-    x_init = c(0, 30, 60, 100),
-    y_init = c(1.04, 1 ,1, 1.04),
+    x_init = RRplot_xcoords,
+    y_init = c(1.012, 1 ,1, 1.04),
     xlab = 'Temperature',
     ylab = 'RR',
-    xmin = 0,
-    xmax = 100,
-    dx = 5,
+    xmin = 0,   ## TODO: update to input$temp_min
+    xmax = 100, ## TODO: update to input$temp_max
+    dx = 5,     ## TODO: update to 5% of difference
     ymin = 0.9,
     ymax = 1.1,
     col = 'red'
@@ -1193,13 +1213,13 @@ server <- function(input, output, session) {
   
   plot2 <- rtPlotServer(
     "plot2",
-    x_init = c(0, 30, 60, 100),
+    x_init = RRplot_xcoords,
     y_init = c(1.01, 1, 1, 1.01),
     xlab = 'Temperature',
     ylab = 'RR',
-    xmin = 0,
-    xmax = 100,
-    dx = 5,
+    xmin = 0,   ## TODO: update to input$temp_min
+    xmax = 100, ## TODO: update to input$temp_max
+    dx = 5,     ## TODO: update to 5% of difference
     ymin = 0.9,
     ymax = 1.1,
     col = 'purple'
@@ -1207,12 +1227,12 @@ server <- function(input, output, session) {
   
   plot3 <- rtPlotServer(
     "plot3",
-    x_init = c(0, 3, 4, 5),
+    x_init = RRplot_lagcoords,
     y_init = c(1, 0.9, 0.75, 0.6),
     xlab = 'Lag',
     ylab = 'RR',
     xmin = 0,
-    xmax = 5,
+    xmax = 5, ## TODO: update to input$maxlag
     dx = 1,
     ymin = 0.5,
     ymax = 1.1,
@@ -1276,7 +1296,6 @@ server <- function(input, output, session) {
       
       maxlag <- input$maxlag
       
-      
       # ---------------------------------------------------
       # Create prediction grid
       # ---------------------------------------------------
@@ -1294,7 +1313,6 @@ server <- function(input, output, session) {
         xpred_base,
         "x"
       )
-      
       
       # ---------------------------------------------------
       # Create crossbasis
@@ -1342,49 +1360,16 @@ server <- function(input, output, session) {
       ## i dont think you can get cumse becase you 
       ## don't know the outcomes yet,
       ## and maybe thats ok for the DGM
-      ## *** is this a function of how many x points you have ??
-      ### ***** ???
       Xpredall <- 0
       cumfit <- matrix(0, length(x), length(l))
-      # currMin = Inf
-      # xatCurrMin = NA
-      
+
       for (i in seq(length(l))) {
         ind <- seq(length(x)) + length(x) * (i - 1)
         Xpredall <- Xpredall + Xpred[ind, , drop = FALSE]
         cumfit[, i] <- Xpredall %*% beta
-        # localMin = cumfit[which.min(cumfit[, i]), i]
-        # if(localMin < currMin) {
-        #   currMin = localMin
-        #   xatCurrMin = x[which.min(cumfit[, i])]
-        # }
       }
       
       true_cen = x[which.min(cumfit[, ncol(cumfit)])]
-      
-      # cout <- exp(cumfit)
-      # names(cout) <- c('temp', paste0("lag", l))
-      # row.names(cout) <- x
-      # write.csv(cout, "cumfit_manual.csv", quote = F)
-      # 
-      # and then recenter
-      # Xpred <- dlnm:::mkXpred(
-      #   "cb",
-      #   cp_basis,
-      #   at = x,
-      #   predvar = x,
-      #   predlag = l,
-      #   cen = xatCurrMin
-      # )
-      # 
-      # Xpredall <- 0
-      # cumfit <- matrix(0, length(x), length(l))
-      # 
-      # for (i in seq(length(l))) {
-      #   ind <- seq(length(x)) + length(x) * (i - 1)
-      #   Xpredall <- Xpredall + Xpred[ind, , drop = FALSE]
-      #   cumfit[, i] <- Xpredall %*% beta
-      # }
       
       # ---------------------------------------------------
       # Rebuild RR surface
@@ -1529,7 +1514,7 @@ server <- function(input, output, session) {
     death_updated <- numeric(
       nrow(df)
     )
-    print(input$pois_draw)
+
     for (i in seq_len(nrow(df))) {
       
       # generating the expcted value
@@ -1548,8 +1533,6 @@ server <- function(input, output, session) {
         death_updated[i] <- deaths_expected_value[i]
       }
       
-      
-
     }
     
     df$death_updated <- round(death_updated)
@@ -1575,8 +1558,8 @@ server <- function(input, output, session) {
       origbasis,
       m_sub,
       cen = min(df$tmaxF),
-      by = 1,
-      bylag = 1,
+      by = 1,     ## this can in theory be < 1
+      bylag = 1,  ## this can in theory be < 1
       cumul = TRUE
     )
     
@@ -1588,8 +1571,8 @@ server <- function(input, output, session) {
       origbasis,
       m_sub,
       cen = xcen,
-      by = 1,
-      bylag = 1,
+      by = 1,     ## this can in theory be < 1
+      bylag = 1,  ## this can in theory be < 1
       cumul = TRUE
     )
     
@@ -1711,7 +1694,7 @@ server <- function(input, output, session) {
     
     setDT(df)
     
-    df[, temp_5 := round(temperature / 5) * 5]
+    df[, temp_5 := round(temperature / 5) * 5]  ## TODO: make sure this works
     
     df <- df[
       , .SD[
@@ -1778,7 +1761,7 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$baseline, {
-    
+  
     updateNumericInput(
       session,
       "case_ymin",
