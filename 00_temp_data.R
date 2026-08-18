@@ -32,13 +32,13 @@ temp_data$city = 'BOSTON'
 
 temp_data
 
-x1 <- temp_data[
-  x1, on = c('date', 'city', 'year')
-]
+# x1 <- temp_data[
+#   x1, on = c('date', 'city', 'year')
+# ]
+# 
+# x1
 
-x1
-
-plot(x1$date, x1$tmaxF)
+# plot(x1$date, x1$tmaxF)
 
 ## ok well now model this so you can control this too
 library(splines)
@@ -65,7 +65,12 @@ C = 4.44 # phase shift
 year_growth = 0.01
 daily_growth = (1 + year_growth)^(1/365) - 1
 sinTemp = (A * sin(B*temp_data$idx + C) + D) * exp(daily_growth * temp_data$idx)
+sinTempRand = sapply(sinTemp, \(x) runif(n = 1, min = x - 20, max = x + 20))
+sinTempRand
 
-plot(temp_data$date, temp_data$tmaxF) 
+plot(temp_data$date, temp_data$tmaxF,
+     xlim = c(temp_data$date[1], temp_data$date[1000])) 
+
 lines(temp_data$date, temp_data$predT, col = 'red')
 lines(temp_data$date, sinTemp, col = 'blue')
+lines(temp_data$date, sinTempRand, col = 'green')

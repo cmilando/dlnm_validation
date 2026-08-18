@@ -270,39 +270,85 @@ ui <- fluidPage(
     tabPanel(
       "Temperature",
       
-      helpText("This page reads in the temperature file listed below"),
+      helpText("This page shows a data generating mechanism for temperature
+               exposure. Random uniform noise is added to this sine functino
+               which is based on observed temperature data from Boston Logan
+               airport."),
       
       fluidRow(
         
-        # -----------------------------------------------------
-        # Temperature file
-        # -----------------------------------------------------
-        
         column(
-          width = 6,
+          width = 12,
           
           div(
             class = "plot-container",
             
             h4(
-              "Temperature Data",
-              style = "margin-top: 0; margin-bottom: 10px;"
+              "Temperature Parameters",
+              style = "margin-top: 0; margin-bottom: 15px;"
             ),
             
-            p(
-              strong("File: "),
-              "getdailystat73.149.185.213.228.6.19.51"
-            ),
-            
-            p(
-              "Daily maximum temperature (°F), 1980–1999."
+            fluidRow(
+              
+              column(
+                width = 2,
+                numericInput(
+                  "temp_min",
+                  "Minimum temp.",
+                  value = 30,
+                  step = 0.1,
+                  width = "100%"
+                )
+              ),
+              
+              column(
+                width = 2,
+                numericInput(
+                  "temp_max",
+                  "Maximum temp.",
+                  value = 70,
+                  step = 0.1,
+                  width = "100%"
+                )
+              ),
+              
+              column(
+                width = 2,
+                numericInput(
+                  "temp_phase",
+                  "Phase shift",
+                  value = 4.44,
+                  step = 0.01,
+                  width = "100%"
+                )
+              ),
+              
+              column(
+                width = 2,
+                numericInput(
+                  "temp_growth",
+                  "Annual growth",
+                  value = 0.01,
+                  step = 0.001,
+                  width = "100%"
+                )
+              ),
+              
+              column(
+                width = 2,
+                numericInput(
+                  "temp_noise",
+                  "Temp. noise",
+                  value = 20,
+                  min = 0,
+                  step = 1,
+                  width = "100%"
+                )
+              )
+              
             )
           )
-        ),
-        
-        
-
-        
+        )
       ),
       
       
@@ -821,67 +867,107 @@ server <- function(input, output, session) {
   
   temp_data <- reactive({
     
-    temp_data <- read.table(
-      "getdailystat73.149.185.213.228.6.19.51",
-      sep = ",",
-      colClasses = c(
-        "numeric",
-        rep("character", 3)
+    # -------------------------------------------------------
+    # Get dates from baseline population
+    # -------------------------------------------------------
+    
+    baseline <- baseline_cases()
+    
+    dates <- baseline$date
+    
+    # -------------------------------------------------------
+    # Daily index
+    # -------------------------------------------------------
+    
+    idx <- seq_along(dates)
+    
+    # -------------------------------------------------------
+    # Temperature parameters
+    # -------------------------------------------------------
+    
+    A <- (
+      input$temp_max -
+        input$temp_min
+    ) / 2
+    
+    B <- 2 * pi / 365
+    
+    D <- (
+      input$temp_max +
+        input$temp_min
+    ) / 2
+    
+    C <- input$temp_phase
+    
+    year_growth <- input$temp_growth
+    
+    daily_growth <- (
+      1 + year_growth
+    )^(1 / 365) - 1
+    
+    # -------------------------------------------------------
+    # Seasonal temperature
+    # -------------------------------------------------------
+    
+    temp_pred <- (
+      A * sin(B * idx + C) + D
+    ) *
+      exp(
+        daily_growth * idx
       )
+    
+    # -------------------------------------------------------
+    # Add noise
+    # -------------------------------------------------------
+    
+    set.seed(input$seed)
+    noise = input$temp_noise
+    tmaxF = sapply(temp_pred, \(x) 
+                   runif(n = 1, min = x - noise, max = x + noise))
+    
+    # temp_pred = scales::rescale(temp_pred, to = c(0, 100))
+    # tmaxF = scales::rescale(tmaxF, to = c(0, 100))
+    
+    # limit to <= 100 and >= 0
+    tmaxF = ifelse(tmaxF > 100, 100, tmaxF)
+    tmaxF = ifelse(tmaxF < 0, 0, tmaxF)
+    
+    # -------------------------------------------------------
+    # Return data
+    # -------------------------------------------------------
+    
+    data.table::data.table(
+      date = dates,
+      city = baseline$city,
+      year = lubridate::year(dates),
+      idx = idx,
+      temp_pred = temp_pred,
+      tmaxF = tmaxF
     )
-    
-    names(temp_data) <- c(
-      "tmaxF",
-      "year",
-      "month",
-      "day"
-    )
-    
-    setDT(temp_data)
-    
-    temp_data[
-      ,
-      dtstr := paste0(
-        trimws(year), "-",
-        trimws(month), "-",
-        trimws(day)
-      )
-    ]
-    
-    temp_data[
-      ,
-      date := as.IDate(dtstr)
-    ]
-    
-    temp_data[
-      ,
-      c("month", "day", "dtstr") := NULL
-    ]
-    
-    temp_data[
-      ,
-      year := year(date)
-    ]
-    
-    temp_data[
-      ,
-      city := input$city
-    ]
-    
-    temp_data
   })
-  
   output$temperature_plot <- renderPlot({
     
     df <- temp_data()
     
-    plot(
-      df$date,
-      df$tmaxF,
-      type = "l",
-      xlab = "Date",
-      ylab = "Maximum temperature (°F)"
-    )
+    ggplot(
+      df,
+      aes(
+        x = date,
+        y = tmaxF
+      )
+    ) +
+      geom_line(alpha = 0.5) +
+      geom_line(
+        aes(y = temp_pred),
+        linewidth = 1,
+        color = 'blue'
+      ) +
+      labs(
+        x = NULL,
+        y = "Temperature",
+        title = "Simulated temperature time series"
+      ) +
+      theme_minimal()
   })
   
   ## *******************************
