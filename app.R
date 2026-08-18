@@ -575,7 +575,7 @@ ui <- fluidPage(
             numericInput(
               "cen",
               "Centering temperature",
-              value = 35,
+              value = 45,
               step = 1,
               width = "100%"
             )
@@ -974,7 +974,7 @@ server <- function(input, output, session) {
   plot1 <- rtPlotServer(
     "plot1",
     x_init = c(0, 30, 60, 100),
-    y_init = c(1, 1 ,1, 1.04),
+    y_init = c(1.04, 1 ,1, 1.04),
     xlab = 'Temperature',
     ylab = 'RR',
     xmin = 0,
@@ -988,7 +988,7 @@ server <- function(input, output, session) {
   plot2 <- rtPlotServer(
     "plot2",
     x_init = c(0, 30, 60, 100),
-    y_init = c(1, 1, 1, 1.01),
+    y_init = c(1.01, 1, 1, 1.01),
     xlab = 'Temperature',
     ylab = 'RR',
     xmin = 0,
