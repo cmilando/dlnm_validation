@@ -339,7 +339,7 @@ ui <- fluidPage(
                 numericInput(
                   "temp_noise",
                   "Temp. noise",
-                  value = 20,
+                  value = 35,
                   min = 0,
                   step = 1,
                   width = "100%"
@@ -575,8 +575,8 @@ ui <- fluidPage(
             numericInput(
               "cen",
               "Centering temperature",
-              value = 50,
-              step = 0.1,
+              value = 35,
+              step = 1,
               width = "100%"
             )
           )
@@ -1323,7 +1323,7 @@ server <- function(input, output, session) {
     death_updated <- numeric(
       nrow(df)
     )
-    
+    print(input$pois_draw)
     for (i in seq_len(nrow(df))) {
       
       # generating the expcted value
@@ -1332,7 +1332,8 @@ server <- function(input, output, session) {
       
       # and then taking a draw from a poisson distribution
       # using that value --> should you add additional variance
-      if(input$pois_draw) {
+
+      if(input$pois_draw == TRUE) {
         death_updated[i] <- rpois(
           n = 1,
           lambda = deaths_expected_value[i]
@@ -1346,6 +1347,8 @@ server <- function(input, output, session) {
     }
     
     df$death_updated <- round(death_updated)
+    df$death_expected_value <- deaths_expected_value
+    print(head(df))
     
     # -----------------------------------------------------
     # Regression model
