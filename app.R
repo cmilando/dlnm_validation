@@ -1241,7 +1241,15 @@ ui <- fluidPage(
               "download_csv",
               "Download CSV",
               class = "btn-primary"
-            )
+            ),
+            
+            br(), br(),
+            
+            p("Sample code:"),
+            
+            br(),
+            
+            verbatimTextOutput("codeSnip")
             
           )
         )
@@ -1930,6 +1938,112 @@ server <- function(input, output, session) {
       coord_cartesian(ylim = c(input$case_ymin, input$case_ymax))
   })
   
+  output$codeSnip <- renderText({
+    
+    "
+    # Necessary libraries
+    library(data.table)
+    library(dlnm)
+    
+    # Read in data from saved file
+    df <- read.csv('sample_data_2026-08-19.csv')
+    df <- setDT(df)
+    
+    # crossbasis
+    argvar = list(fun = 'ns', knots = c(50, 70))
+    arglag = list(fun = 'ns', knots = c(2))
+    maxlag = 5
+    
+    cb_model <- dlnm::crossbasis(
+      df$tmaxF,
+      argvar = argvar,
+      arglag = arglag,
+      lag = maxlag
+    )
+    
+    m_sub <- gnm::gnm(
+      death_updated ~ cb_model,
+      data = df,
+      family = quasipoisson,
+      eliminate = factor(strata)
+    )
+    
+    # crosspred
+    cp <- dlnm::crosspred(
+      cb_model,
+      m_sub,
+      cen = min(df$tmaxF),
+      by = 1,     ## this can in theory be < 1
+      bylag = 1,  ## this can in theory be < 1
+      cumul = TRUE
+    )
+    
+    xcen <- cp$predvar[
+      which.min(cp$allRRfit)
+    ]
+    
+    cp <- dlnm::crosspred(
+      cb_model,
+      m_sub,
+      cen = xcen,
+      by = 1,     ## this can in theory be < 1
+      bylag = 1,  ## this can in theory be < 1
+      cumul = TRUE
+    )
+    
+    # Set up 2x2 plotting area
+    par(mfrow = c(1, 3))
+    
+    # 1. 3D temperature-lag-RR plot
+    plot(cp,
+         xlab = 'Temperature',
+         zlab = 'Relative Risk')
+
+    # 2. Overall exposure-response
+    plot(cp, 'overall',
+         main = 'Cumulative Risk',
+         xlab = 'Temperature',
+         ylab = 'Relative Risk')
+    
+    
+    # 3. Observed vs predicted deaths
+    death_pred <- exp(predict(m_sub))
+    
+    df$death_pred <- c(rep(NA, maxlag), death_pred)
+    df <- subset(df, !is.na(death_pred))
+    
+    x <- df$death_updated
+    y <- df$death_pred
+    
+    # Remove missing values
+    ok <- complete.cases(x, y)
+    x <- x[ok]
+    y <- y[ok]
+    
+    # Statistics
+    r  <- cor(x, y)
+    r2 <- r^2
+    
+    plot(x, y,
+         xlab = 'Observed deaths',
+         ylab = 'Predicted deaths')
+    
+    # 1:1 line
+    abline(a = 0, b = 1, lty = 2, col = 'red')
+    
+    # Regression line
+    fit <- lm(y ~ x)
+    abline(fit, lwd = 2, col = 'purple')
+    
+    # Correlation / R² annotation
+    legend('topleft', 
+       legend = sprintf('r = %.2f,  R² = %.2f',
+                         r, r2), bty = 'n')
+
+    "
+    
+  })
+  
   output$case_scatter <- renderPlot({
     
     res <- model_results()
@@ -2186,7 +2300,7 @@ server <- function(input, output, session) {
     content = function(file) {
       
       data.table::fwrite(
-        joined_data(),
+        model_results()$data,
         file
       )
     }
