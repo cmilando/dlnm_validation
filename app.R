@@ -192,19 +192,19 @@ ui <- fluidPage(
         # -----------------------------------------------------
         
         column(
-          width = 3,
+          width = 2,
           
           div(
             class = "plot-container",
             
             h4(
-              "Baseline Cases",
+              "Outcomes",
               style = "margin-top: 0; margin-bottom: 10px;"
             ),
             
             numericInput(
               "baseline",
-              "Baseline daily cases",
+              "Daily cases",
               value = 1000,
               min = 0,
               step = 10,
@@ -215,7 +215,7 @@ ui <- fluidPage(
         ),
         
         column(
-          width = 3,
+          width = 2,
           
           div(
             class = "plot-container",
@@ -226,8 +226,8 @@ ui <- fluidPage(
             ),
             
             numericInput(
-              "sd",
-              "Random variation (SD)",
+              "rand",
+              "Random",
               value = 0.03,
               min = 0,
               step = 0.01,
@@ -245,14 +245,14 @@ ui <- fluidPage(
         # -----------------------------------------------------
         
         column(
-          width = 3,
+          width = 2,
           
           div(
             class = "plot-container",
             
             h4(
-              "Trends",
-              style = "margin-top: 0; margin-bottom: 10px;"
+              " _ ",
+              style = "margin-top: 0; margin-bottom: 10px;color: white;"
             ),
             
             numericInput(
@@ -269,7 +269,7 @@ ui <- fluidPage(
         ),
         
         column(
-          width = 3,
+          width = 2,
           
           div(
             class = "plot-container",
@@ -281,11 +281,54 @@ ui <- fluidPage(
             
             numericInput(
               "dow_effect",
-              "Day-of-week effect",
+              "Day-of-week",
               value = 0.05,
               min = 0,
               max = 1,
               step = 0.01,
+              width = "100%"
+            )
+          )
+        ),
+        
+        column(
+          width = 2,
+          
+          div(
+            class = "plot-container",
+            
+            h4(
+              " _ ",
+              style = "margin-top: 0; margin-bottom: 10px;color: white;"
+            ),
+            
+            numericInput(
+              "season_effect",
+              "Season",
+              value = 0.05,
+              min = -1,
+              max = 1,
+              step = 0.01,
+              width = "100%"
+            )
+          )
+        ),
+        column(
+          width = 2,
+          
+          div(
+            class = "plot-container",
+            
+            h4(
+              " _ ",
+              style = "margin-top: 0; margin-bottom: 10px;color: white;"
+            ),
+            
+            numericInput(
+              "season_phase",
+              "Season-phase",
+              value = 7.5,
+              step = 0.1,
               width = "100%"
             )
           )
@@ -401,7 +444,7 @@ ui <- fluidPage(
       fluidRow(
         
         column(
-          width = 12,
+          width = 6,
           
           div(
             class = "plot-container",
@@ -409,7 +452,37 @@ ui <- fluidPage(
             h4(
               "Baseline Population Preview",
               style = "margin-top: 0; margin-bottom: 10px;"
-            ),
+            )
+            
+
+          )
+        ), 
+        
+        column(
+          width = 6,
+          
+          div(
+            class = "plot-container",
+            
+            dateRangeInput(
+              "xRange",
+              "X Range",
+              start = as.Date("1980-01-01"),
+              end = as.Date("1999-12-31")
+            )
+            
+            
+          )
+        ), 
+        
+      ),
+      fluidRow(
+        
+        column(
+          width = 12,
+          
+          div(
+            class = "plot-container",
             
             plotOutput(
               "baseline_cases_plot",
@@ -1185,13 +1258,31 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   
   ## *******************************
+  observe({
+    
+    req(input$baseline_yr, input$end_yr)
+    
+    updateDateRangeInput(
+      session,
+      "xRange",
+      start = as.Date(
+        paste0(input$baseline_yr, "-01-01")
+      ),
+      end = as.Date(
+        paste0(input$baseline_yr, "-12-31")
+      )
+    )
+  })
+  
   baseline_cases <- reactive({
     
     get_baseline_cases(
       baseline = input$baseline,
-      sd = input$sd,
+      rand = input$rand,
       year_growth = input$year_growth,
       dow_effect = input$dow_effect,
+      season_effect = input$season_effect,
+      season_phase = input$season_phase,
       city = input$city,
       baseline_yr = input$baseline_yr,
       end_yr = input$end_yr,
@@ -1202,14 +1293,21 @@ server <- function(input, output, session) {
   output$baseline_cases_plot <- renderPlot({
     
     df <- baseline_cases()
+
+    df <- subset(df,
+                 date >= as.IDate(input$xRange[1]) &
+                 date <= as.IDate(input$xRange[2]))
     
-    plot(
-      df$date,
-      df$death,
-      type = "l",
-      xlab = "Date",
-      ylab = "Cases"
-    )
+    
+    ggplot(df) + 
+      geom_line(aes(x = date,
+                    y = death)) + 
+      theme_minimal() + 
+      labs(
+        x = NULL,
+        y = 'Baseline Deaths'
+      )
+    
   })
   
   ## *******************************
@@ -1366,8 +1464,8 @@ server <- function(input, output, session) {
     xmin = 0,   ## TODO: update to input$temp_min
     xmax = 100, ## TODO: update to input$temp_max
     dx = 5,     ## TODO: update to 5% of difference
-    ymin = 0.9,
-    ymax = 1.1,
+    ymin = 0.5,
+    ymax = 2.0,
     col = 'red',
     islag = FALSE
   )
@@ -1381,8 +1479,8 @@ server <- function(input, output, session) {
     xmin = 0,   ## TODO: update to input$temp_min
     xmax = 100, ## TODO: update to input$temp_max
     dx = 5,     ## TODO: update to 5% of difference
-    ymin = 0.9,
-    ymax = 1.1,
+    ymin = 0.5,
+    ymax = 2.0,
     col = 'purple',
     islag = FALSE
   )

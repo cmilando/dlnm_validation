@@ -570,9 +570,11 @@ combinedRRPlotServer <- function(
 # set cases based on a year trend
 get_baseline_cases <- function(
     baseline,
-    sd,
+    rand,
     year_growth,
     dow_effect,
+    season_effect,
+    season_phase,
     city,
     baseline_yr = 1980,
     end_yr = 1999,
@@ -598,6 +600,7 @@ get_baseline_cases <- function(
   df[,dow := wday(all_dt)]
   df[,month := month(all_dt)]
   df[,idx := 1:nrow(df)]
+  df[,yday := yday(all_dt)]
   
   # add year trend but compounded daily
   # (1 + Growth Rate)^(1/365)-1
@@ -607,18 +610,33 @@ get_baseline_cases <- function(
   # add day of week trend
   dow_sine <- function(x) {
     A = dow_effect # amplitude
-    B = 2*pi/7 # frequency
+    B = 2*pi/7 # frequency in days
     C = 0 # phase shift
     D = 1 # vertical shift
     A * sin(B*x + C) + D
   }
   # plot(dow_sine(1:7), type = 'l')
   # points(dow_sine(1:7))
-  df[,death := death * dow_sine(idx)]
+
+  df[,death := death * dow_sine((idx-1) %% 7)]
+  
+  # add month trend
+  season_sine <- function(x) {
+    A = season_effect # amplitude
+    B = 2*pi/365.25 # frequency in days
+    C = season_phase # phase shift
+    D = 1 # vertical shift
+    A * sin(B*x + C) + D
+  }
+  # plot(dow_sine(1:7), type = 'l')
+  # points(dow_sine(1:7))
+  # print(head(df))
+  # print(season_sine(df$yday))
+  df[,death := death * season_sine(yday)]
   
   # add noise based on sd
   # applied in log space to make sure its positive
-  noise = rnorm(nrow(df), sd = sd)
+  noise = runif(nrow(df), min = -rand, max = rand)
   df[, death := exp(log(death) + noise)]
   
   # round to integer
