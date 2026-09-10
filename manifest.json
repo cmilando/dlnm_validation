@@ -5222,29 +5222,17 @@
     }
   },
   "files": {
-    "00_get_baseline_cases_exposure.R": {
-      "checksum": "24a8a87a8addb1fc6d06043e6b415465"
-    },
-    "00_temp_data.R": {
-      "checksum": "a88348bf35c845a6742ef39fd985bffd"
-    },
-    "01_make3d.R": {
-      "checksum": "2997a4cf5d5045a6f7b6c158e0158883"
-    },
-    "02_makeXpredall.R": {
-      "checksum": "be44b183b4ff73425afc5587ae6f5f68"
-    },
-    "03_updateCases.R": {
-      "checksum": "a3e759ea1f4978cc06ec4810d78d8456"
-    },
-    "04_getBeta.R": {
-      "checksum": "6ea37e36251fae7df0f9896735ef0752"
-    },
     "app_fcns.R": {
-      "checksum": "924cb3ac590f7bf65363ebab8ac36813"
+      "checksum": "4f3cab4a22e09965db22cfd32afa2802"
     },
     "app.R": {
-      "checksum": "fbe974e67a8ce72d7a186d55c7fd845c"
+      "checksum": "3e54b6483f1ecb28a249f24650f6680b"
+    },
+    "calc_dispersion.R": {
+      "checksum": "d0072215d4446a3ac3af00aec9f2399c"
+    },
+    "calc_vcov.R": {
+      "checksum": "1f4c6cb1fe1c333ceb820cf4c7417467"
     },
     "getdailystat73.149.185.213.228.6.19.51": {
       "checksum": "5d3222068ff41f364be5af8b439619b9"
@@ -5255,11 +5243,32 @@
     "README.md": {
       "checksum": "80303ab36231bc7789d7642574063988"
     },
+    "sample_data_2026-08-19.csv": {
+      "checksum": "4a11ab18cd921a21d8e75586c1c350d4"
+    },
     "scratch/00_dlnm.test.R": {
       "checksum": "fb07ca27dfc01f1e662f081228ab077d"
     },
     "scratch/00_fcns.R": {
       "checksum": "45b2a41f693e0cf5bc29ffc4c3bdb989"
+    },
+    "scratch/00_get_baseline_cases_exposure.R": {
+      "checksum": "24a8a87a8addb1fc6d06043e6b415465"
+    },
+    "scratch/00_temp_data.R": {
+      "checksum": "a88348bf35c845a6742ef39fd985bffd"
+    },
+    "scratch/01_make3d.R": {
+      "checksum": "2997a4cf5d5045a6f7b6c158e0158883"
+    },
+    "scratch/02_makeXpredall.R": {
+      "checksum": "be44b183b4ff73425afc5587ae6f5f68"
+    },
+    "scratch/03_updateCases.R": {
+      "checksum": "a3e759ea1f4978cc06ec4810d78d8456"
+    },
+    "scratch/04_getBeta.R": {
+      "checksum": "6ea37e36251fae7df0f9896735ef0752"
     },
     "scratch/findBeta": {
       "checksum": "48cbcf2a15d63b584d0a5fe76ec7809e"
@@ -5269,6 +5278,27 @@
     },
     "scratch/scratch.R": {
       "checksum": "289a86b8ac7ca3145c7e50a190289d84"
+    },
+    "UI_download.R": {
+      "checksum": "cd6a9023b0efcd982e9f10a77b71f231"
+    },
+    "UI_info.R": {
+      "checksum": "e45f34fad2f2eef7abfc7bd6dd503b48"
+    },
+    "UI_model.R": {
+      "checksum": "322a51a946369ed3ec0ae269e725bf53"
+    },
+    "UI_population.R": {
+      "checksum": "d3e118fd4b4e6668f817d7322fa342df"
+    },
+    "UI_RRsurface.R": {
+      "checksum": "3a639f81ed9838bb368bbcccf463cc1e"
+    },
+    "UI_temperature.R": {
+      "checksum": "7b289cd9d9d21199e692bb4f95a8627c"
+    },
+    "UI_trueRR.R": {
+      "checksum": "5feba7ba3db3daa5ac47de0c13575e10"
     }
   },
   "users": null
