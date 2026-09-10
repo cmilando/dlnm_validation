@@ -25,7 +25,7 @@ n_days <- 365
 beta0  <- log(1.02)      # baseline effect of X
 beta_Z <- log(1.05)      # true modification by Z
 
-rho_CZ <- 0.80           # correlation between C and Z
+rho_CZ <- 0.60           # correlation between C and Z
 
 sigma_beta <- 0.03       # unexplained between-area heterogeneity
 
@@ -37,6 +37,7 @@ sigma_beta <- 0.03       # unexplained between-area heterogeneity
 area_dt <- data.table(area = 1:n_area, Z = rnorm(n_area))
 
 # C correlated with Z, but C has NO causal role (next step)
+# so the larger rho_CZ is, the higher the correlation
 area_dt[, C := rho_CZ * Z + sqrt(1 - rho_CZ^2) * rnorm(.N)]
 
 # True area-specific X effect
@@ -95,6 +96,9 @@ dt[, Y := rpois(.N, mu)]
 ggplot(subset(dt, area == 1)) +
   geom_line(aes(x = date, y = Y))
 
+# create stratum totals
+dt[, stratum_total := sum(Y), by = stratum]
+
 # ============================================================
 # List of Stage 1 models
 # ============================================================
@@ -107,7 +111,8 @@ stage1 <- dt[, {
     Y ~ X,
     eliminate = factor(stratum),
     family = quasipoisson(),
-    data = .SD
+    data = .SD,
+    keep = stratum_total > 0
   )
   
   b <- coef(fit)["X"]
