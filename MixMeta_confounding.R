@@ -3,16 +3,25 @@ library(ggplot2)
 
 set.seed(123)
 
+# Variables:
+# - X: exposures occurring in areas i
+# - Y: outcome occurring in areas i
+# - C: an area-level variable (e.g., tract-level SVI)
+# - Z: an area-level variable that predicts C (e.g., tract-level income)
+# - β_i: the coefficient for how X predicts Y in area i
+#        in the 2nd stage meta-regression, β_i is affected by C and/or Z
+
 # Quasi-DAG showing whats happening in a 2-stage context
-# where _i indicates the area-level
 #      Z
 #     / \
-#    ↓   ↓
-#   C    β_i
-#        |
-#        │ modifies
-#        ↓
-#  X ─────────→ Y
+#    ↓   |
+#   C   |
+#   ↓   ↓
+#     β_i
+#     |
+#     │ modifies
+#     ↓
+#  X ────→ Y
 
 # ============================================================
 # PARAMETERS
