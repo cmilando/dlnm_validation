@@ -12,14 +12,15 @@ set.seed(123)
 #        in the 2nd stage meta-regression, β_i is affected by C and/or Z
 
 # Quasi-DAG showing whats happening in a 2-stage context
+# 
 #      Z
 #     / \
 #    ↓   |
 #   C   |
-#   ↓   ↓
+#   ↓   ↓   (indicating that either C or Z are used in meta-regression)
 #     β_i
 #     |
-#     │ modifies
+#     │ area-level factors that modify the X->Y relationship
 #     ↓
 #  X ────→ Y
 
