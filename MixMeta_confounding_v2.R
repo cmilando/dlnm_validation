@@ -84,7 +84,7 @@ dt[, alpha := 100]
 ggplot(subset(dt, area == 1)) +
   geom_line(aes(x = date, y = alpha))
 
-# 
+# beta_true changes over time ! 
 beta_true = log(2 - dt$AC_prev)
 
 # Expected outcome
